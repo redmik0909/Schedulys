@@ -1,15 +1,87 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="Schedulys.App.App"
-             xmlns:local="using:Schedulys.App"
-             RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+             x:Class="Schedulys.App.App">
 
-    <Application.DataTemplates>
-        <local:ViewLocator/>
-    </Application.DataTemplates>
-  
-    <Application.Styles>
-        <FluentTheme />
-    </Application.Styles>
+  <!-- 1) RESOURCES FIRST -->
+  <Application.Resources>
+    <SolidColorBrush x:Key="Col.Background" Color="#FAFAFA"/>
+    <SolidColorBrush x:Key="Col.Surface"    Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="Col.Border"     Color="#E5E7EB"/>
+    <SolidColorBrush x:Key="Col.Text"       Color="#111111"/>
+    <SolidColorBrush x:Key="Col.Muted"      Color="#6B7280"/>
+    <SolidColorBrush x:Key="Col.PillBg"     Color="#0F172A"/>
+    <SolidColorBrush x:Key="Col.PillFg"     Color="#FFFFFF"/>
+    <CornerRadius   x:Key="Radius.Card">12</CornerRadius>
+    <CornerRadius   x:Key="Radius.Pill">10</CornerRadius>
+  </Application.Resources>
+
+  <!-- 2) STYLES AFTER RESOURCES -->
+  <Application.Styles>
+    <FluentTheme/>
+
+    <Style Selector="Window">
+      <Setter Property="Background" Value="{StaticResource Col.Background}"/>
+    </Style>
+
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="{StaticResource Col.Text}"/>
+    </Style>
+
+    <Style Selector="Border.appbar">
+      <Setter Property="Background" Value="{StaticResource Col.Surface}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Col.Border}"/>
+      <Setter Property="BorderThickness" Value="0,0,0,1"/>
+      <Setter Property="Padding" Value="20,12"/>
+    </Style>
+
+    <!-- TabControl en pastilles -->
+    <Style Selector="TabControl.nav">
+      <Setter Property="Background" Value="{StaticResource Col.Surface}"/>
+      <Setter Property="Padding" Value="8"/>
+      <Setter Property="TabStripPlacement" Value="Top"/>
+    </Style>
+
+    <Style Selector="TabControl.nav TabItem">
+      <Setter Property="MinHeight" Value="36"/>
+      <Setter Property="Padding" Value="14,6"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{StaticResource Col.Text}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Col.Border}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="{StaticResource Radius.Pill}"/>
+      <Setter Property="FontSize" Value="14"/>
+    </Style>
+
+    <Style Selector="TabControl.nav TabItem:pointerover">
+      <Setter Property="Background" Value="#F3F4F6"/>
+    </Style>
+
+    <Style Selector="TabControl.nav TabItem:selected">
+      <Setter Property="Background" Value="{StaticResource Col.PillBg}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Col.PillBg}"/>
+      <Setter Property="Foreground" Value="{StaticResource Col.PillFg}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style Selector="TabItem > ContentPresenter">
+      <Setter Property="Margin" Value="24"/>
+    </Style>
+
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{StaticResource Col.Surface}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Col.Border}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="{StaticResource Radius.Card}"/>
+      <Setter Property="Padding" Value="16"/>
+    </Style>
+
+    <Style Selector="TextBlock.kpi-title">
+      <Setter Property="Foreground" Value="{StaticResource Col.Muted}"/>
+      <Setter Property="FontSize" Value="13"/>
+    </Style>
+    <Style Selector="TextBlock.kpi-number">
+      <Setter Property="FontSize" Value="28"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+    </Style>
+  </Application.Styles>
 </Application>

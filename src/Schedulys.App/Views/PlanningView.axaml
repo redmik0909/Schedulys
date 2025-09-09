@@ -1,0 +1,9 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Schedulys.App.Views.PlanningView">
+  <Border Padding="16">
+    <Grid>
+      <TextBlock Text="Planning — placeholder" FontSize="18"/>
+    </Grid>
+  </Border>
+</UserControl>

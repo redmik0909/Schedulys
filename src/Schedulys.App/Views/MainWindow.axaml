@@ -1,21 +1,149 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:Schedulys.App.ViewModels"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-        x:Class="Schedulys.App.Views.MainWindow"
-        x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="Schedulys.App">
+        xmlns:views="clr-namespace:Schedulys.App.Views"
+        x:Class="Schedulys.App.Views.MainWindow">
 
-    <Design.DataContext>
-        <vm:MainWindowViewModel/>
-    </Design.DataContext>
+  <DockPanel>
 
-    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
-        <TextBlock Text="{Binding Greeting}" FontSize="20" />
-        <Button Content="Ajouter une salle" Width="150" Height="40"/>
-    </StackPanel>
+    <!-- App bar -->
+    <Border Classes="appbar" DockPanel.Dock="Top">
+  <Grid ColumnDefinitions="Auto,12,*,Auto">
+    <TextBlock Text="🗓️" FontSize="16" VerticalAlignment="Center"/>
+    <TextBlock Text="Schedulys" Grid.Column="2"
+               FontWeight="SemiBold" FontSize="16"
+               VerticalAlignment="Center"/>
+    <TextBlock Grid.Column="3"
+               Text="—"
+               FontSize="12"
+               Foreground="{StaticResource Col.Muted}"
+               VerticalAlignment="Center"/>
+  </Grid>
+</Border>
 
+    <!-- Nav en pastilles -->
+    <TabControl Classes="nav">
+      <!-- Onglet Dashboard -->
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="▣"/>
+            <TextBlock Text="Dashboard"/>
+          </StackPanel>
+        </TabItem.Header>
+
+        <!-- Contenu Dashboard (cartes vides pour le look) -->
+        <StackPanel Spacing="16">
+          <TextBlock Text="Dashboard" FontSize="28" FontWeight="Bold"/>
+
+          <UniformGrid Rows="1" Columns="4" Margin="0,4,0,0" ColumnSpacing="16">
+            <Border Classes="card">
+              <StackPanel>
+                <TextBlock Classes="kpi-title" Text="Total Teachers"/>
+                <TextBlock Classes="kpi-number" Text="0"/>
+                <TextBlock Foreground="{StaticResource Col.Muted}" Text="0 available today" FontSize="12"/>
+              </StackPanel>
+            </Border>
+            <Border Classes="card">
+              <StackPanel>
+                <TextBlock Classes="kpi-title" Text="Total Groups"/>
+                <TextBlock Classes="kpi-number" Text="0"/>
+                <TextBlock Foreground="{StaticResource Col.Muted}" Text="Across all years" FontSize="12"/>
+              </StackPanel>
+            </Border>
+            <Border Classes="card">
+              <StackPanel>
+                <TextBlock Classes="kpi-title" Text="Locations"/>
+                <TextBlock Classes="kpi-number" Text="0"/>
+                <TextBlock Foreground="{StaticResource Col.Muted}" Text="Rooms and facilities" FontSize="12"/>
+              </StackPanel>
+            </Border>
+            <Border Classes="card">
+              <StackPanel>
+                <TextBlock Classes="kpi-title" Text="Scheduled Sessions"/>
+                <TextBlock Classes="kpi-number" Text="0"/>
+                <TextBlock Foreground="{StaticResource Col.Muted}" Text="0 today" FontSize="12"/>
+              </StackPanel>
+            </Border>
+          </UniformGrid>
+
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+            <Border Classes="card" Grid.Column="0">
+              <StackPanel Spacing="8">
+                <TextBlock FontWeight="SemiBold" Text="Today's Schedule"/>
+                <TextBlock Foreground="{StaticResource Col.Muted}"
+                           Text="No sessions scheduled for today" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card" Grid.Column="1">
+              <StackPanel Spacing="8">
+                <TextBlock FontWeight="SemiBold" Text="Quick Stats"/>
+                <StackPanel>
+                  <TextBlock Text="Most Popular Subject: —" />
+                  <TextBlock Text="Busiest Day: —" />
+                  <TextBlock Text="Average Class Duration: —" />
+                  <TextBlock Text="Room Utilization: —" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </Grid>
+        </StackPanel>
+      </TabItem>
+
+      <!-- Planning -->
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="🗂️"/>
+            <TextBlock Text="Schedule"/>
+          </StackPanel>
+        </TabItem.Header>
+        <views:PlanningView/>
+      </TabItem>
+
+      <!-- Teachers -->
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="👩‍🏫"/>
+            <TextBlock Text="Teachers"/>
+          </StackPanel>
+        </TabItem.Header>
+        <views:TeachersView/>
+      </TabItem>
+
+      <!-- Groupes (ex-Classes) -->
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="📚"/>
+            <TextBlock Text="Groups"/>
+          </StackPanel>
+        </TabItem.Header>
+        <views:GroupesView/>
+      </TabItem>
+
+      <!-- Locations -->
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="📍"/>
+            <TextBlock Text="Locations"/>
+          </StackPanel>
+        </TabItem.Header>
+        <views:LocationsView/>
+      </TabItem>
+
+      <!-- Exports -->
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="⬇️"/>
+            <TextBlock Text="Exports"/>
+          </StackPanel>
+        </TabItem.Header>
+        <views:ExportsView/>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
 </Window>
