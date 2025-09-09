@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Schedulys.Core", "src\Sched
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Schedulys.Data", "src\Schedulys.Data\Schedulys.Data.csproj", "{35A7D54D-F037-47F2-AB78-C9A3EF9F2136}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Schedulys.TestConsole", "src\Schedulys.TestConsole\Schedulys.TestConsole.csproj", "{F837EDCB-C1BE-4CBD-9622-F1464A99D237}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,10 +34,15 @@ Global
 		{35A7D54D-F037-47F2-AB78-C9A3EF9F2136}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{35A7D54D-F037-47F2-AB78-C9A3EF9F2136}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{35A7D54D-F037-47F2-AB78-C9A3EF9F2136}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F837EDCB-C1BE-4CBD-9622-F1464A99D237}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F837EDCB-C1BE-4CBD-9622-F1464A99D237}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F837EDCB-C1BE-4CBD-9622-F1464A99D237}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F837EDCB-C1BE-4CBD-9622-F1464A99D237}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{FA3B3225-2A0B-480E-BCC7-8C2F7E8DDD76} = {9439F413-77DA-4B60-9396-E8FF2A12E91D}
 		{2101C464-968B-4998-A1B4-AA47F1C3D471} = {9439F413-77DA-4B60-9396-E8FF2A12E91D}
 		{35A7D54D-F037-47F2-AB78-C9A3EF9F2136} = {9439F413-77DA-4B60-9396-E8FF2A12E91D}
+		{F837EDCB-C1BE-4CBD-9622-F1464A99D237} = {9439F413-77DA-4B60-9396-E8FF2A12E91D}
 	EndGlobalSection
 EndGlobal

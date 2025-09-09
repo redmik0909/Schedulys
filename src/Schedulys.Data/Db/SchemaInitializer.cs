@@ -1,16 +1,17 @@
 using System.Threading.Tasks;
 using Dapper;
+using Microsoft.Data.Sqlite;
 
 namespace Schedulys.Data.Db;
 
 public static class SchemaInitializer
 {
-    public static async Task InitAsync(SqliteConnectionFactory factory)
-    {
-        using var cn = factory.Create();
-        await cn.OpenAsync();
+  public static async Task InitAsync(SqliteConnectionFactory factory)
+  {
+    using var cn = factory.Create();
+    await cn.OpenAsync();
 
-        var ddl = @"
+    var ddl = @"
 CREATE TABLE IF NOT EXISTS Profs(
   Id INTEGER PRIMARY KEY AUTOINCREMENT,
   Nom TEXT NOT NULL,
@@ -56,6 +57,32 @@ CREATE TABLE IF NOT EXISTS Creneaux(
 CREATE INDEX IF NOT EXISTS IDX_Creneaux_SalleDate ON Creneaux(SalleId, Date, HeureDebut, HeureFin);
 CREATE INDEX IF NOT EXISTS IDX_Creneaux_ProfDate  ON Creneaux(SurveillantId, Date, HeureDebut, HeureFin);";
 
-        await cn.ExecuteAsync(ddl);
+    await cn.ExecuteAsync(ddl);
+
+    // Colonnes TiersTemps + DureeMinutes sur Creneaux (si absentes)
+    await AddColumnIfMissing(cn, "Creneaux", "TiersTemps", "INTEGER NOT NULL DEFAULT 0");
+    await AddColumnIfMissing(cn, "Creneaux", "DureeMinutes", "INTEGER NOT NULL DEFAULT 0");
+      const string createEleves = @"
+  CREATE TABLE IF NOT EXISTS Eleves (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    Nom TEXT NOT NULL,
+    ClasseId INTEGER NOT NULL,
+    TiersTemps INTEGER NOT NULL DEFAULT 0,
+    Annee TEXT NOT NULL,
+    FOREIGN KEY(ClasseId) REFERENCES Classes(Id)
+  );";
+  await cn.ExecuteAsync(createEleves);    
+      }
+
+    private static async Task AddColumnIfMissing(SqliteConnection cn, string table, string column, string sqlType)
+    {
+        var exists = await cn.ExecuteScalarAsync<long>(
+            @"SELECT COUNT(*) FROM pragma_table_info(@table) WHERE name=@column;",
+            new { table, column });
+        if (exists == 0)
+        {
+            var alter = $"ALTER TABLE {table} ADD COLUMN {column} {sqlType};";
+            await cn.ExecuteAsync(alter);
+        }
     }
 }
