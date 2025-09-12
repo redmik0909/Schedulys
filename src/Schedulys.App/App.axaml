@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Schedulys.App.App">
 
-  <!-- 1) RESOURCES FIRST -->
+  <!-- 1) Couleurs & tokens -->
   <Application.Resources>
     <SolidColorBrush x:Key="Col.Background" Color="#FAFAFA"/>
     <SolidColorBrush x:Key="Col.Surface"    Color="#FFFFFF"/>
@@ -11,22 +11,26 @@
     <SolidColorBrush x:Key="Col.Muted"      Color="#6B7280"/>
     <SolidColorBrush x:Key="Col.PillBg"     Color="#0F172A"/>
     <SolidColorBrush x:Key="Col.PillFg"     Color="#FFFFFF"/>
+
     <CornerRadius   x:Key="Radius.Card">12</CornerRadius>
     <CornerRadius   x:Key="Radius.Pill">10</CornerRadius>
   </Application.Resources>
 
-  <!-- 2) STYLES AFTER RESOURCES -->
+  <!-- 2) Styles -->
   <Application.Styles>
     <FluentTheme/>
 
+    <!-- Fond fenêtre -->
     <Style Selector="Window">
       <Setter Property="Background" Value="{StaticResource Col.Background}"/>
     </Style>
 
+    <!-- Texte par défaut -->
     <Style Selector="TextBlock">
       <Setter Property="Foreground" Value="{StaticResource Col.Text}"/>
     </Style>
 
+    <!-- App bar -->
     <Style Selector="Border.appbar">
       <Setter Property="Background" Value="{StaticResource Col.Surface}"/>
       <Setter Property="BorderBrush" Value="{StaticResource Col.Border}"/>
@@ -34,39 +38,75 @@
       <Setter Property="Padding" Value="20,12"/>
     </Style>
 
-    <!-- TabControl en pastilles -->
+    <!-- TabControl (nav en pastilles) -->
     <Style Selector="TabControl.nav">
       <Setter Property="Background" Value="{StaticResource Col.Surface}"/>
       <Setter Property="Padding" Value="8"/>
       <Setter Property="TabStripPlacement" Value="Top"/>
     </Style>
 
+    <!-- Pastille (état normal/inactif) + TEMPLATE custom (pas d'underline) -->
     <Style Selector="TabControl.nav TabItem">
       <Setter Property="MinHeight" Value="36"/>
       <Setter Property="Padding" Value="14,6"/>
       <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="Foreground" Value="{StaticResource Col.Text}"/>
       <Setter Property="BorderBrush" Value="{StaticResource Col.Border}"/>
       <Setter Property="BorderThickness" Value="1"/>
       <Setter Property="CornerRadius" Value="{StaticResource Radius.Pill}"/>
       <Setter Property="FontSize" Value="14"/>
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="{TemplateBinding CornerRadius}"
+                  Padding="{TemplateBinding Padding}">
+            <ContentPresenter Content="{TemplateBinding Header}"
+                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+          </Border>
+        </ControlTemplate>
+      </Setter>
     </Style>
 
+    <!-- Couleur du texte pour l'état inactif -->
+    <Style Selector="TabControl.nav TabItem TextBlock">
+      <Setter Property="Foreground" Value="{StaticResource Col.Muted}"/>
+    </Style>
+
+    <!-- Survol (inactif) -->
     <Style Selector="TabControl.nav TabItem:pointerover">
       <Setter Property="Background" Value="#F3F4F6"/>
+      <Setter Property="BorderBrush" Value="#E5E7EB"/>
+    </Style>
+    <Style Selector="TabControl.nav TabItem:pointerover TextBlock">
+      <Setter Property="Foreground" Value="{StaticResource Col.Text}"/>
     </Style>
 
+    <!-- Sélectionné -->
     <Style Selector="TabControl.nav TabItem:selected">
       <Setter Property="Background" Value="{StaticResource Col.PillBg}"/>
       <Setter Property="BorderBrush" Value="{StaticResource Col.PillBg}"/>
+    </Style>
+    <Style Selector="TabControl.nav TabItem:selected TextBlock">
       <Setter Property="Foreground" Value="{StaticResource Col.PillFg}"/>
-      <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
 
+    <!-- Sélectionné + survol : garde la pastille sombre et le texte blanc -->
+    <Style Selector="TabControl.nav TabItem:selected:pointerover">
+      <Setter Property="Background" Value="{StaticResource Col.PillBg}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Col.PillBg}"/>
+    </Style>
+    <Style Selector="TabControl.nav TabItem:selected:pointerover TextBlock">
+      <Setter Property="Foreground" Value="{StaticResource Col.PillFg}"/>
+    </Style>
+
+    <!-- Marge du contenu de chaque onglet -->
     <Style Selector="TabItem > ContentPresenter">
       <Setter Property="Margin" Value="24"/>
     </Style>
 
+    <!-- Cartes KPI -->
     <Style Selector="Border.card">
       <Setter Property="Background" Value="{StaticResource Col.Surface}"/>
       <Setter Property="BorderBrush" Value="{StaticResource Col.Border}"/>
@@ -79,6 +119,7 @@
       <Setter Property="Foreground" Value="{StaticResource Col.Muted}"/>
       <Setter Property="FontSize" Value="13"/>
     </Style>
+
     <Style Selector="TextBlock.kpi-number">
       <Setter Property="FontSize" Value="28"/>
       <Setter Property="FontWeight" Value="Bold"/>

@@ -1,7 +1,9 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:Schedulys.App.Views"
-        x:Class="Schedulys.App.Views.MainWindow">
+        xmlns:vm="clr-namespace:Schedulys.App.ViewModels"
+        x:Class="Schedulys.App.Views.MainWindow"
+        x:DataType="vm:MainShellViewModel">
 
   <DockPanel>
 
@@ -10,13 +12,13 @@
   <Grid ColumnDefinitions="Auto,12,*,Auto">
     <TextBlock Text="🗓️" FontSize="16" VerticalAlignment="Center"/>
     <TextBlock Text="Schedulys" Grid.Column="2"
-               FontWeight="SemiBold" FontSize="16"
+               FontWeight="SemiBold" FontSize="20"
                VerticalAlignment="Center"/>
     <TextBlock Grid.Column="3"
-               Text="—"
-               FontSize="12"
-               Foreground="{StaticResource Col.Muted}"
-               VerticalAlignment="Center"/>
+           Text="{Binding TodayLabel}"
+           FontSize="12"
+           Foreground="{StaticResource Col.Muted}"
+           VerticalAlignment="Center"/>
   </Grid>
 </Border>
 
@@ -79,7 +81,7 @@
               <StackPanel Spacing="8">
                 <TextBlock FontWeight="SemiBold" Text="Quick Stats"/>
                 <StackPanel>
-                  <TextBlock Text="Most Popular Subject: —" />
+                  <TextBlock Text="Examen en cour —" />
                   <TextBlock Text="Busiest Day: —" />
                   <TextBlock Text="Average Class Duration: —" />
                   <TextBlock Text="Room Utilization: —" />
@@ -95,7 +97,7 @@
         <TabItem.Header>
           <StackPanel Orientation="Horizontal" Spacing="6">
             <TextBlock Text="🗂️"/>
-            <TextBlock Text="Schedule"/>
+            <TextBlock Text="Horaire"/>
           </StackPanel>
         </TabItem.Header>
         <views:PlanningView/>
@@ -106,7 +108,7 @@
         <TabItem.Header>
           <StackPanel Orientation="Horizontal" Spacing="6">
             <TextBlock Text="👩‍🏫"/>
-            <TextBlock Text="Teachers"/>
+            <TextBlock Text="Enseignant"/>
           </StackPanel>
         </TabItem.Header>
         <views:TeachersView/>
@@ -117,7 +119,7 @@
         <TabItem.Header>
           <StackPanel Orientation="Horizontal" Spacing="6">
             <TextBlock Text="📚"/>
-            <TextBlock Text="Groups"/>
+            <TextBlock Text="Groupes"/>
           </StackPanel>
         </TabItem.Header>
         <views:GroupesView/>
@@ -128,7 +130,7 @@
         <TabItem.Header>
           <StackPanel Orientation="Horizontal" Spacing="6">
             <TextBlock Text="📍"/>
-            <TextBlock Text="Locations"/>
+            <TextBlock Text="Locaux"/>
           </StackPanel>
         </TabItem.Header>
         <views:LocationsView/>
@@ -139,7 +141,7 @@
         <TabItem.Header>
           <StackPanel Orientation="Horizontal" Spacing="6">
             <TextBlock Text="⬇️"/>
-            <TextBlock Text="Exports"/>
+            <TextBlock Text="Exporter"/>
           </StackPanel>
         </TabItem.Header>
         <views:ExportsView/>
