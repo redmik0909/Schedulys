@@ -52,8 +52,12 @@ public sealed class ProfRepository : IProfRepository
 
     public async Task<bool> DeleteAsync(int id)
     {
-        const string sql = "DELETE FROM Profs WHERE Id=@id;";
         using var cn = _factory.Create();
-        return (await cn.ExecuteAsync(sql, new { id })) > 0;
+        await cn.OpenAsync();
+        using var tx = cn.BeginTransaction();
+        await cn.ExecuteAsync("DELETE FROM Creneaux WHERE SurveillantId=@id", new { id }, tx);
+        var n = await cn.ExecuteAsync("DELETE FROM Profs WHERE Id=@id", new { id }, tx);
+        tx.Commit();
+        return n > 0;
     }
 }

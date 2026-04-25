@@ -4,7 +4,8 @@
         xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:views="clr-namespace:Schedulys.App.Views"
         Title="Schedulys"
-        Height="800" Width="1300"
+        Height="820" Width="1380"
+        MinHeight="680" MinWidth="1100"
         WindowStartupLocation="CenterScreen"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         TextElement.FontWeight="Regular"
@@ -14,130 +15,383 @@
         Background="{DynamicResource MaterialDesignPaper}"
         FontFamily="{DynamicResource MaterialDesignFont}">
 
-  <DockPanel>
+  <Window.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+  </Window.Resources>
 
-    <!-- App bar -->
-    <md:ColorZone DockPanel.Dock="Top" Mode="PrimaryDark" Padding="20,14">
-      <Grid>
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="Auto"/>
-          <ColumnDefinition Width="*"/>
-          <ColumnDefinition Width="Auto"/>
-        </Grid.ColumnDefinitions>
-        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-          <md:PackIcon Kind="CalendarClock" Width="26" Height="26" VerticalAlignment="Center"/>
-          <TextBlock Text="Schedulys" FontSize="22" FontWeight="Medium"
-                     VerticalAlignment="Center" Margin="10,0,0,0"/>
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="240"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+
+    <!-- ══════════════════════════════════════════════════════
+         SIDEBAR
+    ══════════════════════════════════════════════════════ -->
+    <Border Grid.Column="0"
+            Background="#1A237E">
+      <DockPanel>
+
+        <!-- Logo -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal"
+                    Margin="22,28,22,24">
+          <md:PackIcon Kind="CalendarClock" Width="28" Height="28"
+                       Foreground="White" VerticalAlignment="Center"/>
+          <TextBlock Text="Schedulys" Foreground="White" FontSize="20"
+                     FontWeight="SemiBold" VerticalAlignment="Center"
+                     Margin="10,0,0,0"/>
         </StackPanel>
-        <TextBlock Grid.Column="2" Text="{Binding TodayLabel}"
-                   FontSize="13" Opacity="0.75" VerticalAlignment="Center"/>
-      </Grid>
-    </md:ColorZone>
 
-    <!-- Navigation -->
-    <TabControl Style="{StaticResource MaterialDesignTabControl}"
-                md:ColorZoneAssist.Mode="PrimaryMid">
+        <Separator DockPanel.Dock="Top" Background="#33FFFFFF" Margin="0,0,0,8"/>
 
-      <!-- Dashboard -->
-      <TabItem>
-        <TabItem.Header>
-          <StackPanel Orientation="Horizontal">
-            <md:PackIcon Kind="ViewDashboard" VerticalAlignment="Center"/>
-            <TextBlock Text="Dashboard" Margin="6,0,0,0" VerticalAlignment="Center"/>
-          </StackPanel>
-        </TabItem.Header>
-        <ScrollViewer Padding="24,20" VerticalScrollBarVisibility="Auto">
-          <StackPanel>
-            <TextBlock Text="Dashboard" FontSize="26" FontWeight="Medium" Margin="0,0,0,20"/>
-            <UniformGrid Rows="1" Columns="4">
-              <md:Card Margin="0,0,16,0" Padding="20" UniformCornerRadius="8">
-                <StackPanel>
-                  <TextBlock Text="Enseignants" Style="{StaticResource MaterialDesignCaptionTextBlock}"
-                             Opacity="0.6"/>
-                  <TextBlock Text="—" FontSize="32" FontWeight="Medium" Margin="0,4,0,0"/>
-                </StackPanel>
+        <!-- Version en bas -->
+        <TextBlock DockPanel.Dock="Bottom" Text="v1.0"
+                   Foreground="#55FFFFFF" FontSize="11"
+                   HorizontalAlignment="Center" Margin="0,0,0,16"/>
+
+        <Separator DockPanel.Dock="Bottom" Background="#22FFFFFF" Margin="0,8"/>
+
+        <!-- Nav items -->
+        <ListBox ItemsSource="{Binding NavItems}"
+                 SelectedItem="{Binding SelectedNavItem}"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 Margin="0,4,0,0">
+
+          <ListBox.ItemContainerStyle>
+            <Style TargetType="ListBoxItem">
+              <Setter Property="Padding"         Value="0"/>
+              <Setter Property="Margin"          Value="0"/>
+              <Setter Property="BorderThickness" Value="0"/>
+              <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+              <Setter Property="Template">
+                <Setter.Value>
+                  <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="bd"
+                            Background="Transparent"
+                            BorderThickness="3,0,0,0"
+                            BorderBrush="Transparent"
+                            SnapsToDevicePixels="True">
+                      <ContentPresenter/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                      <Trigger Property="IsSelected" Value="True">
+                        <Setter TargetName="bd" Property="Background"   Value="#26FFFFFF"/>
+                        <Setter TargetName="bd" Property="BorderBrush"  Value="White"/>
+                      </Trigger>
+                      <MultiTrigger>
+                        <MultiTrigger.Conditions>
+                          <Condition Property="IsMouseOver" Value="True"/>
+                          <Condition Property="IsSelected"  Value="False"/>
+                        </MultiTrigger.Conditions>
+                        <Setter TargetName="bd" Property="Background" Value="#14FFFFFF"/>
+                      </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                  </ControlTemplate>
+                </Setter.Value>
+              </Setter>
+            </Style>
+          </ListBox.ItemContainerStyle>
+
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Orientation="Horizontal" Margin="20,0" Height="46">
+                <md:PackIcon Kind="{Binding Icon}" Width="19" Height="19"
+                             Foreground="White" Opacity="0.8"
+                             VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Label}" Foreground="White" Opacity="0.88"
+                           FontSize="13.5" VerticalAlignment="Center"
+                           Margin="13,0,0,0"/>
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+
+    <!-- ══════════════════════════════════════════════════════
+         ZONE PRINCIPALE (droite)
+    ══════════════════════════════════════════════════════ -->
+    <Grid Grid.Column="1">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+
+      <!-- Top bar -->
+      <Border Grid.Row="0"
+              Background="{DynamicResource MaterialDesignPaper}"
+              BorderThickness="0,0,0,1"
+              BorderBrush="{DynamicResource MaterialDesignDivider}"
+              Padding="28,0">
+        <DockPanel Height="56">
+          <TextBlock DockPanel.Dock="Left"
+                     Text="{Binding CurrentSectionLabel}"
+                     Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                     FontWeight="Medium" FontSize="16"
+                     VerticalAlignment="Center"/>
+          <TextBlock DockPanel.Dock="Right"
+                     Text="{Binding TodayLabel}"
+                     Style="{StaticResource MaterialDesignBody2TextBlock}"
+                     Opacity="0.55" VerticalAlignment="Center"/>
+        </DockPanel>
+      </Border>
+
+      <!-- Contenu -->
+      <Grid Grid.Row="1" Background="#F1F3F7">
+
+        <!-- ── Dashboard ── -->
+        <ScrollViewer Padding="32,28"
+                      VerticalScrollBarVisibility="Auto"
+                      Visibility="{Binding IsDashboard, Converter={StaticResource BoolToVis}}">
+          <StackPanel MaxWidth="1000">
+
+            <TextBlock Text="Tableau de bord"
+                       Style="{StaticResource MaterialDesignHeadline5TextBlock}"
+                       Margin="0,0,0,24"/>
+
+            <!-- 4 stat cards -->
+            <Grid Margin="0,0,0,16">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+              </Grid.ColumnDefinitions>
+
+              <!-- Enseignants -->
+              <md:Card Grid.Column="0" Padding="0" UniformCornerRadius="10"
+                       Margin="0,0,10,0" md:ElevationAssist.Elevation="Dp2">
+                <Grid>
+                  <Border Height="4" VerticalAlignment="Top" Background="#3F51B5"
+                          CornerRadius="10,10,0,0"/>
+                  <DockPanel Margin="20,18,20,18">
+                    <md:PackIcon DockPanel.Dock="Right" Kind="AccountTie"
+                                 Width="38" Height="38" Opacity="0.1"
+                                 VerticalAlignment="Center"/>
+                    <StackPanel>
+                      <TextBlock Text="{Binding StatEnseignants}" FontSize="40"
+                                 FontWeight="Bold" Foreground="#3F51B5" LineHeight="44"/>
+                      <TextBlock Text="Enseignants" FontSize="12" Opacity="0.6"
+                                 Margin="0,4,0,0"/>
+                    </StackPanel>
+                  </DockPanel>
+                </Grid>
               </md:Card>
-              <md:Card Margin="0,0,16,0" Padding="20" UniformCornerRadius="8">
-                <StackPanel>
-                  <TextBlock Text="Groupes" Style="{StaticResource MaterialDesignCaptionTextBlock}"
-                             Opacity="0.6"/>
-                  <TextBlock Text="—" FontSize="32" FontWeight="Medium" Margin="0,4,0,0"/>
-                </StackPanel>
+
+              <!-- Groupes -->
+              <md:Card Grid.Column="1" Padding="0" UniformCornerRadius="10"
+                       Margin="5,0,5,0" md:ElevationAssist.Elevation="Dp2">
+                <Grid>
+                  <Border Height="4" VerticalAlignment="Top" Background="#009688"
+                          CornerRadius="10,10,0,0"/>
+                  <DockPanel Margin="20,18,20,18">
+                    <md:PackIcon DockPanel.Dock="Right" Kind="AccountGroup"
+                                 Width="38" Height="38" Opacity="0.1"
+                                 VerticalAlignment="Center"/>
+                    <StackPanel>
+                      <TextBlock Text="{Binding StatGroupes}" FontSize="40"
+                                 FontWeight="Bold" Foreground="#009688" LineHeight="44"/>
+                      <TextBlock Text="Groupes" FontSize="12" Opacity="0.6"
+                                 Margin="0,4,0,0"/>
+                    </StackPanel>
+                  </DockPanel>
+                </Grid>
               </md:Card>
-              <md:Card Margin="0,0,16,0" Padding="20" UniformCornerRadius="8">
-                <StackPanel>
-                  <TextBlock Text="Locaux" Style="{StaticResource MaterialDesignCaptionTextBlock}"
-                             Opacity="0.6"/>
-                  <TextBlock Text="—" FontSize="32" FontWeight="Medium" Margin="0,4,0,0"/>
-                </StackPanel>
+
+              <!-- Locaux -->
+              <md:Card Grid.Column="2" Padding="0" UniformCornerRadius="10"
+                       Margin="5,0,5,0" md:ElevationAssist.Elevation="Dp2">
+                <Grid>
+                  <Border Height="4" VerticalAlignment="Top" Background="#F57C00"
+                          CornerRadius="10,10,0,0"/>
+                  <DockPanel Margin="20,18,20,18">
+                    <md:PackIcon DockPanel.Dock="Right" Kind="DoorOpen"
+                                 Width="38" Height="38" Opacity="0.1"
+                                 VerticalAlignment="Center"/>
+                    <StackPanel>
+                      <TextBlock Text="{Binding StatLocaux}" FontSize="40"
+                                 FontWeight="Bold" Foreground="#F57C00" LineHeight="44"/>
+                      <TextBlock Text="Locaux" FontSize="12" Opacity="0.6"
+                                 Margin="0,4,0,0"/>
+                    </StackPanel>
+                  </DockPanel>
+                </Grid>
               </md:Card>
-              <md:Card Padding="20" UniformCornerRadius="8">
-                <StackPanel>
-                  <TextBlock Text="Séances planifiées" Style="{StaticResource MaterialDesignCaptionTextBlock}"
-                             Opacity="0.6"/>
-                  <TextBlock Text="—" FontSize="32" FontWeight="Medium" Margin="0,4,0,0"/>
-                </StackPanel>
+
+              <!-- Épreuves -->
+              <md:Card Grid.Column="3" Padding="0" UniformCornerRadius="10"
+                       Margin="10,0,0,0" md:ElevationAssist.Elevation="Dp2">
+                <Grid>
+                  <Border Height="4" VerticalAlignment="Top" Background="#7B1FA2"
+                          CornerRadius="10,10,0,0"/>
+                  <DockPanel Margin="20,18,20,18">
+                    <md:PackIcon DockPanel.Dock="Right" Kind="ClipboardText"
+                                 Width="38" Height="38" Opacity="0.1"
+                                 VerticalAlignment="Center"/>
+                    <StackPanel>
+                      <TextBlock Text="{Binding StatEpreuves}" FontSize="40"
+                                 FontWeight="Bold" Foreground="#7B1FA2" LineHeight="44"/>
+                      <TextBlock Text="Épreuves" FontSize="12" Opacity="0.6"
+                                 Margin="0,4,0,0"/>
+                    </StackPanel>
+                  </DockPanel>
+                </Grid>
               </md:Card>
-            </UniformGrid>
+            </Grid>
+
+            <!-- Créneaux cette semaine -->
+            <md:Card Padding="0" UniformCornerRadius="10"
+                     md:ElevationAssist.Elevation="Dp2">
+              <Grid>
+                <Border Height="4" VerticalAlignment="Top" Background="#00897B"
+                        CornerRadius="10,10,0,0"/>
+                <DockPanel Margin="24,18,24,18">
+                  <md:PackIcon DockPanel.Dock="Right" Kind="CalendarMonth"
+                               Width="44" Height="44" Opacity="0.1"
+                               VerticalAlignment="Center"/>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding StatCreneaux}" FontSize="40"
+                               FontWeight="Bold" Foreground="#00897B" LineHeight="44"
+                               VerticalAlignment="Center"/>
+                    <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
+                      <TextBlock Text="sessions d'examen" FontSize="14" FontWeight="Medium"/>
+                      <TextBlock Text="cette semaine" FontSize="12" Opacity="0.55"/>
+                    </StackPanel>
+                  </StackPanel>
+                </DockPanel>
+              </Grid>
+            </md:Card>
+
+            <!-- Import données initiales -->
+            <md:Card Padding="0" UniformCornerRadius="10" Margin="0,16,0,0"
+                     md:ElevationAssist.Elevation="Dp2">
+              <DockPanel Margin="24,20,24,20">
+                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                  <TextBlock Text="Données initiales" FontSize="15" FontWeight="Medium"/>
+                  <TextBlock Text="Importer enseignants, locaux, épreuves et sessions depuis le calendrier scolaire 2025-2026"
+                             FontSize="12" Opacity="0.6" Margin="0,3,0,0"
+                             TextWrapping="Wrap" MaxWidth="500"/>
+                  <TextBlock Text="{Binding ImportStatus}"
+                             FontSize="12" Foreground="#00897B" Margin="0,6,0,0">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding ImportStatus}" Value="">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </StackPanel>
+                <Button DockPanel.Dock="Right"
+                        Style="{StaticResource MaterialDesignRaisedButton}"
+                        Content="IMPORTER"
+                        Command="{Binding ImporterDonneesCommand}"
+                        Background="#3F51B5" Foreground="White"
+                        VerticalAlignment="Center"
+                        md:ButtonAssist.CornerRadius="6"
+                        Padding="20,8"/>
+              </DockPanel>
+            </md:Card>
+
           </StackPanel>
         </ScrollViewer>
-      </TabItem>
 
-      <!-- Horaire -->
-      <TabItem>
-        <TabItem.Header>
-          <StackPanel Orientation="Horizontal">
-            <md:PackIcon Kind="CalendarMonth" VerticalAlignment="Center"/>
-            <TextBlock Text="Horaire" Margin="6,0,0,0" VerticalAlignment="Center"/>
-          </StackPanel>
-        </TabItem.Header>
-        <views:PlanningView/>
-      </TabItem>
+        <!-- ── Horaire ── -->
+        <Border>
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedNavItem.Section}" Value="horaire">
+                  <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <views:PlanningView DataContext="{Binding Planning}" IsVisibleChanged="OnPlanningVisibleChanged"/>
+        </Border>
 
-      <!-- Enseignants -->
-      <TabItem>
-        <TabItem.Header>
-          <StackPanel Orientation="Horizontal">
-            <md:PackIcon Kind="AccountTie" VerticalAlignment="Center"/>
-            <TextBlock Text="Enseignants" Margin="6,0,0,0" VerticalAlignment="Center"/>
-          </StackPanel>
-        </TabItem.Header>
-        <views:TeachersView DataContext="{Binding Teachers}"/>
-      </TabItem>
+        <!-- ── Enseignants ── -->
+        <Border>
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedNavItem.Section}" Value="enseignants">
+                  <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <views:TeachersView DataContext="{Binding Teachers}"/>
+        </Border>
 
-      <!-- Groupes -->
-      <TabItem>
-        <TabItem.Header>
-          <StackPanel Orientation="Horizontal">
-            <md:PackIcon Kind="AccountGroup" VerticalAlignment="Center"/>
-            <TextBlock Text="Groupes" Margin="6,0,0,0" VerticalAlignment="Center"/>
-          </StackPanel>
-        </TabItem.Header>
-        <views:GroupesView DataContext="{Binding Groupes}"/>
-      </TabItem>
+        <!-- ── Groupes ── -->
+        <Border>
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedNavItem.Section}" Value="groupes">
+                  <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <views:GroupesView DataContext="{Binding Groupes}"/>
+        </Border>
 
-      <!-- Locaux -->
-      <TabItem>
-        <TabItem.Header>
-          <StackPanel Orientation="Horizontal">
-            <md:PackIcon Kind="DoorOpen" VerticalAlignment="Center"/>
-            <TextBlock Text="Locaux" Margin="6,0,0,0" VerticalAlignment="Center"/>
-          </StackPanel>
-        </TabItem.Header>
-        <views:LocationsView DataContext="{Binding Locations}"/>
-      </TabItem>
+        <!-- ── Épreuves ── -->
+        <Border>
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedNavItem.Section}" Value="epreuves">
+                  <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <views:ExamsView DataContext="{Binding Exams}" IsVisibleChanged="OnExamsVisibleChanged"/>
+        </Border>
 
-      <!-- Exporter -->
-      <TabItem>
-        <TabItem.Header>
-          <StackPanel Orientation="Horizontal">
-            <md:PackIcon Kind="Download" VerticalAlignment="Center"/>
-            <TextBlock Text="Exporter" Margin="6,0,0,0" VerticalAlignment="Center"/>
-          </StackPanel>
-        </TabItem.Header>
-        <views:ExportsView/>
-      </TabItem>
+        <!-- ── Locaux ── -->
+        <Border>
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedNavItem.Section}" Value="locaux">
+                  <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <views:LocationsView DataContext="{Binding Locations}"/>
+        </Border>
 
-    </TabControl>
-  </DockPanel>
+        <!-- ── Exporter ── -->
+        <Border>
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedNavItem.Section}" Value="exporter">
+                  <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <views:ExportsView DataContext="{Binding Exports}"/>
+        </Border>
+
+      </Grid>
+    </Grid>
+  </Grid>
 </Window>

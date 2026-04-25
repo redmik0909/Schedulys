@@ -47,6 +47,15 @@ public sealed class CreneauRepository : ICreneauRepository
         return rows.ToList();
     }
 
+    public async Task<IReadOnlyList<Creneau>> ListByPeriodeAsync(DateOnly debut, DateOnly fin)
+    {
+        using var cn = _factory.Create();
+        var rows = await cn.QueryAsync<Creneau>(
+            "SELECT Id, EpreuveId, SalleId, SurveillantId, Date, HeureDebut, HeureFin, Statut, TiersTemps, DureeMinutes FROM Creneaux WHERE Date BETWEEN @d0 AND @d1 ORDER BY Date, HeureDebut",
+            new { d0 = debut.ToString("yyyy-MM-dd"), d1 = fin.ToString("yyyy-MM-dd") });
+        return rows.ToList();
+    }
+
     public async Task<bool> UpdateAsync(Creneau c)
     {
         using var cn = _factory.Create();

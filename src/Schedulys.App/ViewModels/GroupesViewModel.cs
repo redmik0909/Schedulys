@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -26,7 +27,7 @@ public sealed partial class GroupesViewModel : ViewModelBase
         _ = LoadAsync();
     }
 
-    private async Task LoadAsync()
+    public async Task LoadAsync()
     {
         var list = await _db.Classes.ListAsync();
         Classes.Clear();
@@ -48,13 +49,24 @@ public sealed partial class GroupesViewModel : ViewModelBase
         await LoadAsync();
     }
 
+    [ObservableProperty] private string _erreur = "";
+
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private async Task DeleteSelectedAsync()
     {
         if (Selected is null) return;
-        await _db.Classes.DeleteAsync(Selected.Id);
-        Selected = null;
-        await LoadAsync();
+        Erreur = "";
+        try
+        {
+            var id = Selected.Id;
+            Selected = null;
+            await _db.Classes.DeleteAsync(id);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Erreur = $"Impossible de supprimer : {ex.Message}";
+        }
     }
 
     private bool HasSelection() => Selected is not null;

@@ -16,6 +16,13 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        DispatcherUnhandledException += (_, args) =>
+        {
+            MessageBox.Show(args.Exception.ToString(), "Erreur inattendue",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            args.Handled = true;
+        };
+
         var appData = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Schedulys");
@@ -30,5 +37,7 @@ public partial class App : Application
             DataContext = new MainShellViewModel(Db)
         };
         window.Show();
+
+        _ = UpdateChecker.CheckAndPromptAsync();
     }
 }

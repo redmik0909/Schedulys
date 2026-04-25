@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -30,6 +31,9 @@ public sealed partial class ExamsViewModel : ViewModelBase
         _db = db;
         _ = LoadAsync();
     }
+
+    [RelayCommand]
+    public async Task RefreshAsync() => await LoadAsync();
 
     private async Task LoadAsync()
     {
@@ -70,13 +74,24 @@ public sealed partial class ExamsViewModel : ViewModelBase
         await LoadAsync();
     }
 
+    [ObservableProperty] private string _erreur = "";
+
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private async Task DeleteSelectedAsync()
     {
         if (Selected is null) return;
-        await _db.Epreuves.DeleteAsync(Selected.Epreuve.Id);
-        Selected = null;
-        await LoadAsync();
+        Erreur = "";
+        try
+        {
+            var id = Selected.Epreuve.Id;
+            Selected = null;
+            await _db.Epreuves.DeleteAsync(id);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Erreur = $"Impossible de supprimer : {ex.Message}";
+        }
     }
 
     private bool HasSelection() => Selected is not null;

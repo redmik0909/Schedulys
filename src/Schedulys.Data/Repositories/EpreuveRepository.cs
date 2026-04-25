@@ -52,7 +52,12 @@ public sealed class EpreuveRepository : IEpreuveRepository
     public async Task<bool> DeleteAsync(int id)
     {
         using var cn = _factory.Create();
-        var n = await cn.ExecuteAsync("DELETE FROM Epreuves WHERE Id=@id;", new { id });
+        await cn.OpenAsync();
+        using var tx = cn.BeginTransaction();
+        await cn.ExecuteAsync("DELETE FROM Creneaux WHERE EpreuveId=@id", new { id }, tx);
+        await cn.ExecuteAsync("DELETE FROM GroupesExamen WHERE EpreuveId=@id", new { id }, tx);
+        var n = await cn.ExecuteAsync("DELETE FROM Epreuves WHERE Id=@id", new { id }, tx);
+        tx.Commit();
         return n > 0;
     }
 }

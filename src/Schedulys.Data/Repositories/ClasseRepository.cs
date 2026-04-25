@@ -54,7 +54,14 @@ public sealed class ClasseRepository : IClasseRepository
     public async Task<bool> DeleteAsync(int id)
     {
         using var cn = _factory.Create();
-        var n = await cn.ExecuteAsync("DELETE FROM Classes WHERE Id=@id;", new { id });
+        await cn.OpenAsync();
+        using var tx = cn.BeginTransaction();
+        await cn.ExecuteAsync("DELETE FROM Creneaux WHERE EpreuveId IN (SELECT Id FROM Epreuves WHERE ClasseId=@id)", new { id }, tx);
+        await cn.ExecuteAsync("DELETE FROM GroupesExamen WHERE EpreuveId IN (SELECT Id FROM Epreuves WHERE ClasseId=@id)", new { id }, tx);
+        await cn.ExecuteAsync("DELETE FROM Epreuves WHERE ClasseId=@id", new { id }, tx);
+        await cn.ExecuteAsync("DELETE FROM Eleves WHERE ClasseId=@id", new { id }, tx);
+        var n = await cn.ExecuteAsync("DELETE FROM Classes WHERE Id=@id", new { id }, tx);
+        tx.Commit();
         return n > 0;
     }
 }

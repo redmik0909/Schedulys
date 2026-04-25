@@ -14,26 +14,30 @@
       <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
 
-    <!-- Titre -->
-    <TextBlock Grid.Row="0" Text="Enseignants"
+    <TextBlock Grid.Row="0" Text="Personnel"
                Style="{StaticResource MaterialDesignHeadline5TextBlock}"/>
 
     <!-- Formulaire d'ajout -->
     <md:Card Grid.Row="2" Padding="20" UniformCornerRadius="8">
       <StackPanel>
-        <TextBlock Text="Ajouter un enseignant"
+        <TextBlock Text="Ajouter un membre du personnel"
                    Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
                    Margin="0,0,0,16"/>
         <StackPanel Orientation="Horizontal">
           <TextBox md:HintAssist.Hint="Nom complet"
                    Style="{StaticResource MaterialDesignOutlinedTextBox}"
                    Text="{Binding NomInput, UpdateSourceTrigger=PropertyChanged}"
-                   Width="300" Margin="0,0,16,0"/>
+                   Width="280" Margin="0,0,12,0"/>
           <ComboBox md:HintAssist.Hint="Rôle"
                     Style="{StaticResource MaterialDesignOutlinedComboBox}"
                     ItemsSource="{Binding Roles}"
                     SelectedItem="{Binding SelectedRole}"
-                    Width="180" Margin="0,0,16,0"/>
+                    Width="180" Margin="0,0,12,0"/>
+          <TextBox md:HintAssist.Hint="Min/jour cibles"
+                   Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                   Text="{Binding MinutesInput, UpdateSourceTrigger=PropertyChanged}"
+                   md:HintAssist.HelperText="De la tâche éducative"
+                   Width="130" Margin="0,0,12,0"/>
           <Button Content="AJOUTER"
                   Style="{StaticResource MaterialDesignRaisedButton}"
                   Command="{Binding AddCommand}"
@@ -42,7 +46,7 @@
       </StackPanel>
     </md:Card>
 
-    <!-- DataGrid -->
+    <!-- Grille du personnel -->
     <DataGrid Grid.Row="4"
               ItemsSource="{Binding Profs}"
               SelectedItem="{Binding Selected}"
@@ -52,16 +56,46 @@
               IsReadOnly="True"
               SelectionMode="Single">
       <DataGrid.Columns>
-        <DataGridTextColumn Header="Nom"  Binding="{Binding Nom}"  Width="*"/>
-        <DataGridTextColumn Header="Rôle" Binding="{Binding Role}" Width="220"/>
+        <DataGridTextColumn Header="Nom"         Binding="{Binding Nom}"          Width="*"/>
+        <DataGridTextColumn Header="Rôle"        Binding="{Binding Role}"         Width="180"/>
+        <DataGridTextColumn Header="Min/jour"    Binding="{Binding MinutesLabel}" Width="100"/>
       </DataGrid.Columns>
     </DataGrid>
 
-    <!-- Supprimer -->
-    <Button Grid.Row="6"
-            Content="SUPPRIMER LA SÉLECTION"
-            Style="{StaticResource MaterialDesignOutlinedButton}"
-            Command="{Binding DeleteSelectedCommand}"
-            HorizontalAlignment="Left"/>
+    <!-- Message erreur -->
+    <TextBlock Grid.Row="5" Foreground="#D32F2F"
+               Text="{Binding Erreur}" FontSize="12" Margin="0,4,0,0">
+      <TextBlock.Style>
+        <Style TargetType="TextBlock">
+          <Setter Property="Visibility" Value="Visible"/>
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding Erreur}" Value="">
+              <Setter Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </TextBlock.Style>
+    </TextBlock>
+
+    <!-- Actions bas de page -->
+    <DockPanel Grid.Row="6">
+      <!-- Modifier les minutes de la sélection -->
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+        <TextBox md:HintAssist.Hint="Min/jour"
+                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                 Text="{Binding MinutesEditInput, UpdateSourceTrigger=PropertyChanged}"
+                 Width="100" Margin="0,0,8,0"
+                 IsEnabled="{Binding HasSelection}"/>
+        <Button Content="ENREGISTRER MINUTES"
+                Style="{StaticResource MaterialDesignOutlinedButton}"
+                Command="{Binding SaveMinutesCommand}"
+                VerticalAlignment="Center"/>
+      </StackPanel>
+
+      <Button DockPanel.Dock="Left"
+              Content="SUPPRIMER LA SÉLECTION"
+              Style="{StaticResource MaterialDesignOutlinedButton}"
+              Command="{Binding DeleteSelectedCommand}"/>
+    </DockPanel>
   </Grid>
 </UserControl>

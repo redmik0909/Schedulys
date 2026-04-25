@@ -2,8 +2,58 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
-  <StackPanel Margin="24,20">
-    <TextBlock Text="Exporter" Style="{StaticResource MaterialDesignHeadline5TextBlock}" Margin="0,0,0,8"/>
-    <TextBlock Text="À venir — export PDF / CSV / ICS" Opacity="0.6"/>
-  </StackPanel>
+
+  <Grid Margin="24,20">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="24"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <TextBlock Grid.Row="0" Text="Exporter"
+               Style="{StaticResource MaterialDesignHeadline5TextBlock}"/>
+
+    <md:Card Grid.Row="2" Padding="24" UniformCornerRadius="8" MaxWidth="520" HorizontalAlignment="Left">
+      <StackPanel>
+        <TextBlock Text="Export CSV — lisible dans Excel"
+                   Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                   Margin="0,0,0,20"/>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+          <DatePicker md:HintAssist.Hint="Du"
+                      Style="{StaticResource MaterialDesignDatePicker}"
+                      SelectedDate="{Binding DateDebut}"
+                      Width="160" Margin="0,0,20,0"/>
+          <DatePicker md:HintAssist.Hint="Au"
+                      Style="{StaticResource MaterialDesignDatePicker}"
+                      SelectedDate="{Binding DateFin}"
+                      Width="160"/>
+        </StackPanel>
+
+        <Button Content="EXPORTER CSV"
+                Style="{StaticResource MaterialDesignRaisedButton}"
+                Command="{Binding ExporterCsvCommand}"
+                HorizontalAlignment="Left"
+                Margin="0,0,0,16"/>
+
+        <TextBlock Text="{Binding Message}"
+                   TextWrapping="Wrap"
+                   FontSize="13">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock">
+              <Setter Property="Foreground" Value="{DynamicResource MaterialDesignValidationErrorBrush}"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding Succes}" Value="True">
+                  <Setter Property="Foreground" Value="#388E3C"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Message}" Value="">
+                  <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
+        </TextBlock>
+      </StackPanel>
+    </md:Card>
+  </Grid>
 </UserControl>

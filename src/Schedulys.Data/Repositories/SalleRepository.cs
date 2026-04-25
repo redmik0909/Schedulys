@@ -54,7 +54,11 @@ public sealed class SalleRepository : ISalleRepository
     public async Task<bool> DeleteAsync(int id)
     {
         using var cn = _factory.Create();
-        var n = await cn.ExecuteAsync("DELETE FROM Salles WHERE Id=@id;", new { id });
+        await cn.OpenAsync();
+        using var tx = cn.BeginTransaction();
+        await cn.ExecuteAsync("DELETE FROM Creneaux WHERE SalleId=@id", new { id }, tx);
+        var n = await cn.ExecuteAsync("DELETE FROM Salles WHERE Id=@id", new { id }, tx);
+        tx.Commit();
         return n > 0;
     }
 }

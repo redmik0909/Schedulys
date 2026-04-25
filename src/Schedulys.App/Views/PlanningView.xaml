@@ -2,8 +2,384 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
-  <StackPanel Margin="24,20">
-    <TextBlock Text="Horaire" Style="{StaticResource MaterialDesignHeadline5TextBlock}" Margin="0,0,0,8"/>
-    <TextBlock Text="À venir — planification des créneaux" Opacity="0.6"/>
-  </StackPanel>
+
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+  </UserControl.Resources>
+
+  <!-- 2 colonnes : sessions (gauche) + formulaires (droite) -->
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*"/>
+      <ColumnDefinition Width="340"/>
+    </Grid.ColumnDefinitions>
+
+    <!-- ══════════════════════════════════════════════════════
+         GAUCHE — navigation date + liste sessions
+    ══════════════════════════════════════════════════════ -->
+    <DockPanel Grid.Column="0" Margin="24,20,12,20">
+
+      <!-- Barre navigation date -->
+      <DockPanel DockPanel.Dock="Top" Margin="0,0,0,14">
+        <TextBlock DockPanel.Dock="Left" Text="Horaire des examens"
+                   Style="{StaticResource MaterialDesignHeadline5TextBlock}"
+                   VerticalAlignment="Center"/>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button Content="&#x276E;" Style="{StaticResource MaterialDesignFlatButton}"
+                  Command="{Binding JourPrecedentCommand}" Padding="6,2" MinWidth="32"/>
+          <DatePicker SelectedDate="{Binding FiltreDate}"
+                      Style="{StaticResource MaterialDesignDatePicker}"
+                      Width="145" Margin="4,0"/>
+          <Button Content="&#x276F;" Style="{StaticResource MaterialDesignFlatButton}"
+                  Command="{Binding JourSuivantCommand}" Padding="6,2" MinWidth="32"/>
+          <Button Content="Aujourd'hui" Style="{StaticResource MaterialDesignFlatButton}"
+                  Command="{Binding AujourdhUiCommand}" Margin="4,0,0,0" FontSize="12"/>
+        </StackPanel>
+      </DockPanel>
+
+      <Separator DockPanel.Dock="Top" Margin="0,0,0,14"/>
+
+      <!-- Sessions -->
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+
+          <!-- Aucune session -->
+          <TextBlock Text="Aucune session d'examen pour cette date."
+                     Opacity="0.45" FontSize="13" HorizontalAlignment="Center" Margin="0,32">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Sessions.Count}" Value="0">
+                    <Setter Property="Visibility" Value="Visible"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+
+          <ItemsControl ItemsSource="{Binding Sessions}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <md:Card Margin="0,0,0,16" Padding="0" UniformCornerRadius="8"
+                         md:ElevationAssist.Elevation="Dp2">
+                  <StackPanel>
+
+                    <!-- En-tête session -->
+                    <Border CornerRadius="8,8,0,0" Padding="14,10" Background="#3F51B5">
+                      <DockPanel>
+                        <Button DockPanel.Dock="Right"
+                                Style="{StaticResource MaterialDesignFlatButton}"
+                                Command="{Binding DataContext.SupprimerSessionCommand,
+                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}"
+                                Foreground="White" Opacity="0.7"
+                                Padding="4,0" Height="24" MinWidth="28">✕</Button>
+                        <Button DockPanel.Dock="Right"
+                                Content="SÉLECT."
+                                Style="{StaticResource MaterialDesignFlatButton}"
+                                Command="{Binding DataContext.SelectionnerSessionCommand,
+                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}"
+                                Foreground="White" FontSize="10"
+                                Padding="6,0" Height="24" MinWidth="0" Margin="0,0,4,0"/>
+                        <StackPanel VerticalAlignment="Center">
+                          <TextBlock Text="{Binding EnTete}" Foreground="White"
+                                     FontSize="13" FontWeight="SemiBold"/>
+                          <TextBlock Foreground="#AAFFFFFF" FontSize="11" Margin="0,2,0,0">
+                            <TextBlock.Text>
+                              <MultiBinding StringFormat="{}{0} groupe(s)  ·  {1} min total">
+                                <Binding Path="TotalGroupes"/>
+                                <Binding Path="TotalMinutes"/>
+                              </MultiBinding>
+                            </TextBlock.Text>
+                          </TextBlock>
+                        </StackPanel>
+                      </DockPanel>
+                    </Border>
+
+                    <!-- Groupes d'examen -->
+                    <ItemsControl ItemsSource="{Binding Groupes}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Border BorderThickness="0,0,0,1"
+                                  BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                  Padding="14,7">
+                            <DockPanel>
+                              <Button DockPanel.Dock="Right"
+                                      Style="{StaticResource MaterialDesignFlatButton}"
+                                      Command="{Binding DataContext.SupprimerGroupeCommand,
+                                                RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                      CommandParameter="{Binding}"
+                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                      Padding="4,0" Height="20" MinWidth="24">✕</Button>
+                              <StackPanel>
+                                <TextBlock Text="{Binding Ligne1}"
+                                           FontWeight="Medium" FontSize="12"/>
+                                <TextBlock Text="{Binding Ligne2}"
+                                           FontSize="11" Opacity="0.6" Margin="0,2,0,0"/>
+                              </StackPanel>
+                            </DockPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Rôles de surveillance -->
+                    <ItemsControl ItemsSource="{Binding Roles}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Border Background="#F8F8F8"
+                                  BorderThickness="0,0,0,1"
+                                  BorderBrush="{DynamicResource MaterialDesignDivider}"
+                                  Padding="14,5">
+                            <DockPanel>
+                              <Button DockPanel.Dock="Right"
+                                      Style="{StaticResource MaterialDesignFlatButton}"
+                                      Command="{Binding DataContext.SupprimerRoleCommand,
+                                                RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                      CommandParameter="{Binding}"
+                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                      Padding="4,0" Height="20" MinWidth="24">✕</Button>
+                              <StackPanel>
+                                <TextBlock Text="{Binding Ligne1}"
+                                           FontWeight="Medium" FontSize="11" Foreground="#555"/>
+                                <TextBlock Text="{Binding Ligne2}"
+                                           FontSize="10" Opacity="0.55" Margin="0,1,0,0"/>
+                              </StackPanel>
+                            </DockPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                  </StackPanel>
+                </md:Card>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+        </StackPanel>
+      </ScrollViewer>
+    </DockPanel>
+
+    <!-- ══════════════════════════════════════════════════════
+         DROITE — Formulaires + minuterie
+    ══════════════════════════════════════════════════════ -->
+    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto"
+                  Margin="12,20,24,20">
+      <StackPanel>
+
+        <!-- ── Créer session ── -->
+        <md:Card Padding="16" UniformCornerRadius="8" Margin="0,0,0,14"
+                 md:ElevationAssist.Elevation="Dp2">
+          <StackPanel>
+            <TextBlock Text="Nouvelle session"
+                       Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                       Margin="0,0,0,10"/>
+            <DatePicker md:HintAssist.Hint="Date"
+                        Style="{StaticResource MaterialDesignDatePicker}"
+                        SelectedDate="{Binding DateNouvelleSession}"
+                        Margin="0,0,0,8"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+              <ComboBox md:HintAssist.Hint="Période"
+                        Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                        ItemsSource="{Binding Periodes}"
+                        SelectedItem="{Binding PeriodeNouvelleSession}"
+                        Width="90" Margin="0,0,8,0"/>
+              <TextBox md:HintAssist.Hint="Heure (HH:mm)"
+                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                       Text="{Binding HeureDebutNouvelleSession, UpdateSourceTrigger=PropertyChanged}"
+                       Width="110"/>
+            </StackPanel>
+            <Button Content="CRÉER LA SESSION"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    Command="{Binding CreerSessionCommand}"
+                    HorizontalAlignment="Left"/>
+          </StackPanel>
+        </md:Card>
+
+        <!-- ── Ajouter groupe (visible si session sélectionnée) ── -->
+        <md:Card Padding="16" UniformCornerRadius="8" Margin="0,0,0,14"
+                 md:ElevationAssist.Elevation="Dp2"
+                 Visibility="{Binding HasSessionSelectionnee, Converter={StaticResource BoolToVis}}">
+          <StackPanel>
+            <TextBlock Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                       Margin="0,0,0,2">
+              <Run Text="Ajouter un groupe"/>
+            </TextBlock>
+            <TextBlock Text="{Binding SessionSelectionnee.EnTete}"
+                       FontSize="11" Opacity="0.55" Margin="0,0,0,10"/>
+
+            <ComboBox md:HintAssist.Hint="Épreuve"
+                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                      ItemsSource="{Binding EpreuvesDisponibles}"
+                      SelectedItem="{Binding EpreuveSelectionnee}"
+                      DisplayMemberPath="Nom"
+                      Margin="0,0,0,8"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+              <TextBox md:HintAssist.Hint="Code groupe"
+                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                       Text="{Binding CodeGroupeInput, UpdateSourceTrigger=PropertyChanged}"
+                       Width="150" Margin="0,0,8,0"/>
+              <TextBox md:HintAssist.Hint="# élèves"
+                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                       Text="{Binding NbElevesInput, UpdateSourceTrigger=PropertyChanged}"
+                       Width="80"/>
+            </StackPanel>
+            <ComboBox md:HintAssist.Hint="Enseignant responsable"
+                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                      ItemsSource="{Binding ProfsDisponibles}"
+                      SelectedItem="{Binding EnseignantSelectionne}"
+                      DisplayMemberPath="Nom"
+                      Margin="0,0,0,8"/>
+            <ComboBox md:HintAssist.Hint="Surveillant (optionnel)"
+                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                      ItemsSource="{Binding ProfsDisponibles}"
+                      SelectedItem="{Binding SurveillantSelectionne}"
+                      DisplayMemberPath="Nom"
+                      Margin="0,0,0,8"/>
+            <ComboBox md:HintAssist.Hint="Salle (optionnel)"
+                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                      ItemsSource="{Binding SallesDisponibles}"
+                      SelectedItem="{Binding SalleSelectionnee}"
+                      DisplayMemberPath="Nom"
+                      Margin="0,0,0,8"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+              <ComboBox md:HintAssist.Hint="Type"
+                        Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                        ItemsSource="{Binding TypesGroupe}"
+                        SelectedItem="{Binding TypeGroupe}"
+                        Width="120" Margin="0,0,8,0"/>
+              <CheckBox Content="+1/3 temps"
+                        Style="{StaticResource MaterialDesignCheckBox}"
+                        IsChecked="{Binding TiersTemps}"
+                        VerticalAlignment="Center"/>
+            </StackPanel>
+            <Button Content="AJOUTER LE GROUPE"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    Command="{Binding AjouterGroupeCommand}"
+                    HorizontalAlignment="Left"/>
+          </StackPanel>
+        </md:Card>
+
+        <!-- ── Ajouter rôle de surveillance ── -->
+        <md:Card Padding="16" UniformCornerRadius="8" Margin="0,0,0,14"
+                 md:ElevationAssist.Elevation="Dp2"
+                 Visibility="{Binding HasSessionSelectionnee, Converter={StaticResource BoolToVis}}">
+          <StackPanel>
+            <TextBlock Text="Ajouter un rôle de surveillance"
+                       Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                       Margin="0,0,0,10"/>
+            <ComboBox md:HintAssist.Hint="Type de rôle"
+                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                      ItemsSource="{Binding TypesRole}"
+                      SelectedItem="{Binding TypeRoleInput}"
+                      Margin="0,0,0,8"/>
+            <ComboBox md:HintAssist.Hint="Surveillant"
+                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                      ItemsSource="{Binding ProfsDisponibles}"
+                      SelectedItem="{Binding SurveillantRoleSelectionne}"
+                      DisplayMemberPath="Nom"
+                      Margin="0,0,0,8"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+              <TextBox md:HintAssist.Hint="Local (optionnel)"
+                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                       Text="{Binding LocalRoleInput, UpdateSourceTrigger=PropertyChanged}"
+                       Width="110" Margin="0,0,8,0"/>
+              <TextBox md:HintAssist.Hint="Durée (min)"
+                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                       Text="{Binding DureeRoleInput, UpdateSourceTrigger=PropertyChanged}"
+                       Width="80"/>
+            </StackPanel>
+            <Button Content="AJOUTER LE RÔLE"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    Command="{Binding AjouterRoleCommand}"
+                    HorizontalAlignment="Left"/>
+          </StackPanel>
+        </md:Card>
+
+        <!-- ── Erreur ── -->
+        <TextBlock Text="{Binding MessageErreur}"
+                   Foreground="{DynamicResource MaterialDesignValidationErrorBrush}"
+                   FontSize="12" Margin="0,0,0,12" TextWrapping="Wrap">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock">
+              <Setter Property="Visibility" Value="Visible"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding MessageErreur}" Value="">
+                  <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
+        </TextBlock>
+
+        <!-- ── Minutes de surveillance par enseignant ── -->
+        <md:Card Padding="16" UniformCornerRadius="8"
+                 md:ElevationAssist.Elevation="Dp2">
+          <StackPanel>
+            <TextBlock Text="Minutes de surveillance — ce jour"
+                       Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                       Margin="0,0,0,4"/>
+            <TextBlock Text="{Binding FiltreDateLabel}"
+                       FontSize="11" Opacity="0.55" Margin="0,0,0,12"/>
+
+            <TextBlock Text="Aucun enseignant enregistré."
+                       Opacity="0.45" FontSize="12">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                  <Setter Property="Visibility" Value="Collapsed"/>
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding MinutesParProf.Count}" Value="0">
+                      <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+
+            <ItemsControl ItemsSource="{Binding MinutesParProf}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <StackPanel Margin="0,0,0,7">
+                    <TextBlock Text="{Binding Label}" FontSize="11">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                          <Setter Property="Foreground"
+                                  Value="{DynamicResource MaterialDesignBody}"/>
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsOverQuota}" Value="True">
+                              <Setter Property="Foreground" Value="#EF5350"/>
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                    <ProgressBar Value="{Binding Pourcentage, Mode=OneWay}" Maximum="100"
+                                 Height="4" Margin="0,2,0,0">
+                      <ProgressBar.Style>
+                        <Style TargetType="ProgressBar"
+                               BasedOn="{StaticResource MaterialDesignLinearProgressBar}">
+                          <Setter Property="Foreground" Value="#4CAF50"/>
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsOverQuota}" Value="True">
+                              <Setter Property="Foreground" Value="#EF5350"/>
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </ProgressBar.Style>
+                    </ProgressBar>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+          </StackPanel>
+        </md:Card>
+
+      </StackPanel>
+    </ScrollViewer>
+
+  </Grid>
 </UserControl>

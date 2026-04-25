@@ -59,20 +59,72 @@ CREATE INDEX IF NOT EXISTS IDX_Creneaux_ProfDate  ON Creneaux(SurveillantId, Dat
 
     await cn.ExecuteAsync(ddl);
 
-    // Colonnes TiersTemps + DureeMinutes sur Creneaux (si absentes)
-    await AddColumnIfMissing(cn, "Creneaux", "TiersTemps", "INTEGER NOT NULL DEFAULT 0");
+    // Colonnes TiersTemps + DureeMinutes sur Creneaux (si absentes — rétrocompat)
+    await AddColumnIfMissing(cn, "Creneaux", "TiersTemps",   "INTEGER NOT NULL DEFAULT 0");
     await AddColumnIfMissing(cn, "Creneaux", "DureeMinutes", "INTEGER NOT NULL DEFAULT 0");
-      const string createEleves = @"
-  CREATE TABLE IF NOT EXISTS Eleves (
-    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-    Nom TEXT NOT NULL,
-    ClasseId INTEGER NOT NULL,
-    TiersTemps INTEGER NOT NULL DEFAULT 0,
-    Annee TEXT NOT NULL,
-    FOREIGN KEY(ClasseId) REFERENCES Classes(Id)
-  );";
-  await cn.ExecuteAsync(createEleves);    
-      }
+
+    const string newTables = @"
+CREATE TABLE IF NOT EXISTS Eleves (
+  Id INTEGER PRIMARY KEY AUTOINCREMENT,
+  Nom TEXT NOT NULL,
+  ClasseId INTEGER NOT NULL,
+  TiersTemps INTEGER NOT NULL DEFAULT 0,
+  Annee TEXT NOT NULL,
+  FOREIGN KEY(ClasseId) REFERENCES Classes(Id)
+);
+
+CREATE TABLE IF NOT EXISTS Sessions (
+  Id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  Date          TEXT    NOT NULL,
+  Periode       TEXT    NOT NULL DEFAULT 'AM',
+  HeureDebut    TEXT    NOT NULL,
+  AnneeScolaire TEXT    NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS GroupesExamen (
+  Id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  SessionId     INTEGER NOT NULL,
+  EpreuveId     INTEGER NOT NULL,
+  CodeGroupe    TEXT    NOT NULL DEFAULT '',
+  EnseignantId  INTEGER NOT NULL DEFAULT 0,
+  NbEleves      INTEGER NOT NULL DEFAULT 0,
+  SurveillantId INTEGER,
+  SalleId       INTEGER,
+  TiersTemps    INTEGER NOT NULL DEFAULT 0,
+  DureeMinutes  INTEGER NOT NULL DEFAULT 0,
+  Type          TEXT    NOT NULL DEFAULT 'Standard',
+  FOREIGN KEY (SessionId)    REFERENCES Sessions(Id),
+  FOREIGN KEY (EpreuveId)    REFERENCES Epreuves(Id)
+);
+
+CREATE TABLE IF NOT EXISTS RolesSurveillance (
+  Id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  SessionId     INTEGER NOT NULL,
+  TypeRole      TEXT    NOT NULL,
+  SurveillantId INTEGER NOT NULL,
+  Local         TEXT,
+  DureeMinutes  INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (SessionId) REFERENCES Sessions(Id)
+);
+
+CREATE TABLE IF NOT EXISTS QuotasMinutes (
+  Id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  ProfId        INTEGER NOT NULL,
+  MinutesMax    INTEGER NOT NULL,
+  AnneeScolaire TEXT    NOT NULL,
+  UNIQUE(ProfId, AnneeScolaire)
+);
+
+CREATE INDEX IF NOT EXISTS IDX_Sessions_Date          ON Sessions(Date);
+CREATE INDEX IF NOT EXISTS IDX_GroupesExamen_Session  ON GroupesExamen(SessionId);
+CREATE INDEX IF NOT EXISTS IDX_GroupesExamen_Surv     ON GroupesExamen(SurveillantId);
+CREATE INDEX IF NOT EXISTS IDX_GroupesExamen_Ens      ON GroupesExamen(EnseignantId);
+CREATE INDEX IF NOT EXISTS IDX_RolesSurv_Session      ON RolesSurveillance(SessionId);
+CREATE INDEX IF NOT EXISTS IDX_RolesSurv_Surv         ON RolesSurveillance(SurveillantId);
+CREATE INDEX IF NOT EXISTS IDX_Quotas_Prof            ON QuotasMinutes(ProfId);
+";
+    await cn.ExecuteAsync(newTables);
+  }
 
     private static async Task AddColumnIfMissing(SqliteConnection cn, string table, string column, string sqlType)
     {
