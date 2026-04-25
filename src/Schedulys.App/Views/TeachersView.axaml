@@ -1,9 +1,50 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="Schedulys.App.Views.TeachersView">
-  <Border Padding="16">
-    <Grid>
-      <TextBlock Text="Teachers — placeholder" FontSize="18"/>
-    </Grid>
-  </Border>
+<UserControl x:Class="Schedulys.App.Views.TeachersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="12"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="12"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="8"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <!-- Titre -->
+    <TextBlock Grid.Row="0" Text="Enseignants" FontSize="28" FontWeight="Bold"/>
+
+    <!-- Formulaire d'ajout -->
+    <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+      <StackPanel>
+        <TextBlock Text="Ajouter un enseignant" FontWeight="SemiBold" Margin="0,0,0,8"/>
+        <StackPanel Orientation="Horizontal">
+          <TextBox Text="{Binding NomInput, UpdateSourceTrigger=PropertyChanged}"
+                   Width="280" Margin="0,0,8,0"/>
+          <TextBox Text="{Binding RoleInput, UpdateSourceTrigger=PropertyChanged}"
+                   Width="160" Margin="0,0,8,0"/>
+          <Button Content="Ajouter" Command="{Binding AddCommand}"/>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- Liste des enseignants -->
+    <DataGrid Grid.Row="4"
+              ItemsSource="{Binding Profs}"
+              SelectedItem="{Binding Selected}">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Nom"  Binding="{Binding Nom}"  Width="*"/>
+        <DataGridTextColumn Header="Rôle" Binding="{Binding Role}" Width="200"/>
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <!-- Supprimer -->
+    <Button Grid.Row="6"
+            Content="Supprimer la sélection"
+            Command="{Binding DeleteSelectedCommand}"
+            HorizontalAlignment="Left"/>
+
+  </Grid>
 </UserControl>

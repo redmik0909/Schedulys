@@ -1,0 +1,68 @@
+<UserControl x:Class="Schedulys.App.Views.LocationsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
+
+  <Grid Margin="24,20">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="16"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="16"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="12"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <TextBlock Grid.Row="0" Text="Locaux"
+               Style="{StaticResource MaterialDesignHeadline5TextBlock}"/>
+
+    <md:Card Grid.Row="2" Padding="20" UniformCornerRadius="8">
+      <StackPanel>
+        <TextBlock Text="Ajouter une salle"
+                   Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                   Margin="0,0,0,16"/>
+        <StackPanel Orientation="Horizontal">
+          <TextBox md:HintAssist.Hint="Nom de la salle"
+                   Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                   Text="{Binding NomInput, UpdateSourceTrigger=PropertyChanged}"
+                   Width="260" Margin="0,0,16,0"/>
+          <TextBox md:HintAssist.Hint="Capacité"
+                   Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                   Text="{Binding CapaciteInput, UpdateSourceTrigger=PropertyChanged}"
+                   Width="100" Margin="0,0,16,0"/>
+          <ComboBox md:HintAssist.Hint="Type"
+                    Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                    ItemsSource="{Binding Types}"
+                    SelectedItem="{Binding SelectedType}"
+                    Width="200" Margin="0,0,16,0"/>
+          <Button Content="AJOUTER"
+                  Style="{StaticResource MaterialDesignRaisedButton}"
+                  Command="{Binding AddCommand}"
+                  VerticalAlignment="Center"/>
+        </StackPanel>
+      </StackPanel>
+    </md:Card>
+
+    <DataGrid Grid.Row="4"
+              ItemsSource="{Binding Salles}"
+              SelectedItem="{Binding Selected}"
+              Style="{StaticResource MaterialDesignDataGrid}"
+              AutoGenerateColumns="False"
+              CanUserAddRows="False"
+              IsReadOnly="True"
+              SelectionMode="Single">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Nom"      Binding="{Binding Nom}"      Width="*"/>
+        <DataGridTextColumn Header="Capacité" Binding="{Binding Capacite}" Width="100"/>
+        <DataGridTextColumn Header="Type"     Binding="{Binding Type}"     Width="200"/>
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <Button Grid.Row="6"
+            Content="SUPPRIMER LA SÉLECTION"
+            Style="{StaticResource MaterialDesignOutlinedButton}"
+            Command="{Binding DeleteSelectedCommand}"
+            HorizontalAlignment="Left"/>
+  </Grid>
+</UserControl>

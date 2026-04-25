@@ -1,9 +1,8 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="Schedulys.App.Views.ExportsView">
-  <Grid>
-    <TextBlock Text="Exports — placeholder"
-               HorizontalAlignment="Center"
-               VerticalAlignment="Center"/>
-  </Grid>
+<UserControl x:Class="Schedulys.App.Views.ExportsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <StackPanel>
+    <TextBlock Text="Exporter" FontSize="28" FontWeight="Bold" Margin="0,0,0,12"/>
+    <TextBlock Text="À venir — export PDF / CSV / ICS" Foreground="{StaticResource MutedBrush}"/>
+  </StackPanel>
 </UserControl>

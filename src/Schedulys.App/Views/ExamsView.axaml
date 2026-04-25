@@ -1,9 +1,8 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="Schedulys.App.Views.ExamsView">
-  <Border Padding="16">
-    <Grid>
-      <TextBlock Text="Exams — placeholder" FontSize="18"/>
-    </Grid>
-  </Border>
+<UserControl x:Class="Schedulys.App.Views.ExamsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <StackPanel>
+    <TextBlock Text="Épreuves" FontSize="28" FontWeight="Bold" Margin="0,0,0,12"/>
+    <TextBlock Text="À venir — gestion des examens" Foreground="{StaticResource MutedBrush}"/>
+  </StackPanel>
 </UserControl>

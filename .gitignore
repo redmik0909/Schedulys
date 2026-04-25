@@ -20,3 +20,13 @@ obj/
 
 # Backups
 Backups/
+
+# Release
+publish/
+installer_output/
+installer.iss
+release.ps1
+
+# Docs internes
+src/CLAUDE.md
+plan_developpement_schedulys.pdf

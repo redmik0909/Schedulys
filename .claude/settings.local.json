@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($env:GITHUB_TOKEN = [System.Environment]::GetEnvironmentVariable\\(\"GITHUB_TOKEN\", \"User\"\\); Set-Location \"c:\\\\Users\\\\mohpc\\\\iCloudDrive\\\\Projets\\\\Schedulys\"; & .\\\\release.ps1 -version 1.0)"
+    ]
+  }
+}

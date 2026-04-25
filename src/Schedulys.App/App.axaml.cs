@@ -1,6 +1,8 @@
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Markup.Xaml;
+using System;
+using System.IO;
+using System.Windows;
+using Schedulys.Data;
+using Schedulys.Data.Db;
 using Schedulys.App.ViewModels;
 using Schedulys.App.Views;
 
@@ -8,21 +10,25 @@ namespace Schedulys.App;
 
 public partial class App : Application
 {
-    public override void Initialize()
-    {
-        AvaloniaXamlLoader.Load(this);
-    }
+    public static DataContext Db { get; private set; } = null!;
 
-    public override void OnFrameworkInitializationCompleted()
+    protected override async void OnStartup(StartupEventArgs e)
     {
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        base.OnStartup(e);
+
+        var appData = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Schedulys");
+        var dbPath = Path.Combine(appData, "data.db");
+
+        var factory = new SqliteConnectionFactory(dbPath);
+        await SchemaInitializer.InitAsync(factory);
+        Db = new DataContext(dbPath);
+
+        var window = new MainWindow
         {
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = new MainShellViewModel()
-            };
-        }
-
-        base.OnFrameworkInitializationCompleted();
+            DataContext = new MainShellViewModel(Db)
+        };
+        window.Show();
     }
 }

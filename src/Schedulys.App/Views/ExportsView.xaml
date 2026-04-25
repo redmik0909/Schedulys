@@ -1,0 +1,9 @@
+<UserControl x:Class="Schedulys.App.Views.ExportsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
+  <StackPanel Margin="24,20">
+    <TextBlock Text="Exporter" Style="{StaticResource MaterialDesignHeadline5TextBlock}" Margin="0,0,0,8"/>
+    <TextBlock Text="À venir — export PDF / CSV / ICS" Opacity="0.6"/>
+  </StackPanel>
+</UserControl>

@@ -1,7 +1,8 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="Schedulys.App.Views.GroupesView">
-  <Grid>
-    <TextBlock Text="Groups — placeholder"/>
-  </Grid>
+<UserControl x:Class="Schedulys.App.Views.GroupesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <StackPanel>
+    <TextBlock Text="Groupes" FontSize="28" FontWeight="Bold" Margin="0,0,0,12"/>
+    <TextBlock Text="À venir — gestion des classes" Foreground="{StaticResource MutedBrush}"/>
+  </StackPanel>
 </UserControl>

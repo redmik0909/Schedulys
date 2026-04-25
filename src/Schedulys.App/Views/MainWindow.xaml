@@ -1,0 +1,143 @@
+<Window x:Class="Schedulys.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:views="clr-namespace:Schedulys.App.Views"
+        Title="Schedulys"
+        Height="800" Width="1300"
+        WindowStartupLocation="CenterScreen"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="14"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="{DynamicResource MaterialDesignFont}">
+
+  <DockPanel>
+
+    <!-- App bar -->
+    <md:ColorZone DockPanel.Dock="Top" Mode="PrimaryDark" Padding="20,14">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+          <md:PackIcon Kind="CalendarClock" Width="26" Height="26" VerticalAlignment="Center"/>
+          <TextBlock Text="Schedulys" FontSize="22" FontWeight="Medium"
+                     VerticalAlignment="Center" Margin="10,0,0,0"/>
+        </StackPanel>
+        <TextBlock Grid.Column="2" Text="{Binding TodayLabel}"
+                   FontSize="13" Opacity="0.75" VerticalAlignment="Center"/>
+      </Grid>
+    </md:ColorZone>
+
+    <!-- Navigation -->
+    <TabControl Style="{StaticResource MaterialDesignTabControl}"
+                md:ColorZoneAssist.Mode="PrimaryMid">
+
+      <!-- Dashboard -->
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal">
+            <md:PackIcon Kind="ViewDashboard" VerticalAlignment="Center"/>
+            <TextBlock Text="Dashboard" Margin="6,0,0,0" VerticalAlignment="Center"/>
+          </StackPanel>
+        </TabItem.Header>
+        <ScrollViewer Padding="24,20" VerticalScrollBarVisibility="Auto">
+          <StackPanel>
+            <TextBlock Text="Dashboard" FontSize="26" FontWeight="Medium" Margin="0,0,0,20"/>
+            <UniformGrid Rows="1" Columns="4">
+              <md:Card Margin="0,0,16,0" Padding="20" UniformCornerRadius="8">
+                <StackPanel>
+                  <TextBlock Text="Enseignants" Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                             Opacity="0.6"/>
+                  <TextBlock Text="—" FontSize="32" FontWeight="Medium" Margin="0,4,0,0"/>
+                </StackPanel>
+              </md:Card>
+              <md:Card Margin="0,0,16,0" Padding="20" UniformCornerRadius="8">
+                <StackPanel>
+                  <TextBlock Text="Groupes" Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                             Opacity="0.6"/>
+                  <TextBlock Text="—" FontSize="32" FontWeight="Medium" Margin="0,4,0,0"/>
+                </StackPanel>
+              </md:Card>
+              <md:Card Margin="0,0,16,0" Padding="20" UniformCornerRadius="8">
+                <StackPanel>
+                  <TextBlock Text="Locaux" Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                             Opacity="0.6"/>
+                  <TextBlock Text="—" FontSize="32" FontWeight="Medium" Margin="0,4,0,0"/>
+                </StackPanel>
+              </md:Card>
+              <md:Card Padding="20" UniformCornerRadius="8">
+                <StackPanel>
+                  <TextBlock Text="Séances planifiées" Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                             Opacity="0.6"/>
+                  <TextBlock Text="—" FontSize="32" FontWeight="Medium" Margin="0,4,0,0"/>
+                </StackPanel>
+              </md:Card>
+            </UniformGrid>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- Horaire -->
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal">
+            <md:PackIcon Kind="CalendarMonth" VerticalAlignment="Center"/>
+            <TextBlock Text="Horaire" Margin="6,0,0,0" VerticalAlignment="Center"/>
+          </StackPanel>
+        </TabItem.Header>
+        <views:PlanningView/>
+      </TabItem>
+
+      <!-- Enseignants -->
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal">
+            <md:PackIcon Kind="AccountTie" VerticalAlignment="Center"/>
+            <TextBlock Text="Enseignants" Margin="6,0,0,0" VerticalAlignment="Center"/>
+          </StackPanel>
+        </TabItem.Header>
+        <views:TeachersView DataContext="{Binding Teachers}"/>
+      </TabItem>
+
+      <!-- Groupes -->
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal">
+            <md:PackIcon Kind="AccountGroup" VerticalAlignment="Center"/>
+            <TextBlock Text="Groupes" Margin="6,0,0,0" VerticalAlignment="Center"/>
+          </StackPanel>
+        </TabItem.Header>
+        <views:GroupesView DataContext="{Binding Groupes}"/>
+      </TabItem>
+
+      <!-- Locaux -->
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal">
+            <md:PackIcon Kind="DoorOpen" VerticalAlignment="Center"/>
+            <TextBlock Text="Locaux" Margin="6,0,0,0" VerticalAlignment="Center"/>
+          </StackPanel>
+        </TabItem.Header>
+        <views:LocationsView DataContext="{Binding Locations}"/>
+      </TabItem>
+
+      <!-- Exporter -->
+      <TabItem>
+        <TabItem.Header>
+          <StackPanel Orientation="Horizontal">
+            <md:PackIcon Kind="Download" VerticalAlignment="Center"/>
+            <TextBlock Text="Exporter" Margin="6,0,0,0" VerticalAlignment="Center"/>
+          </StackPanel>
+        </TabItem.Header>
+        <views:ExportsView/>
+      </TabItem>
+
+    </TabControl>
+  </DockPanel>
+</Window>

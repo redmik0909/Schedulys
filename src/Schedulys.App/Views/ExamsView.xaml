@@ -1,0 +1,82 @@
+<UserControl x:Class="Schedulys.App.Views.ExamsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
+
+  <Grid Margin="24,20">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="16"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="16"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="12"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <TextBlock Grid.Row="0" Text="Épreuves"
+               Style="{StaticResource MaterialDesignHeadline5TextBlock}"/>
+
+    <md:Card Grid.Row="2" Padding="20" UniformCornerRadius="8">
+      <StackPanel>
+        <TextBlock Text="Ajouter une épreuve"
+                   Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                   Margin="0,0,0,16"/>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+          <TextBox md:HintAssist.Hint="Nom de l'épreuve"
+                   Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                   Text="{Binding NomInput, UpdateSourceTrigger=PropertyChanged}"
+                   Width="300" Margin="0,0,16,0"/>
+          <ComboBox md:HintAssist.Hint="Classe"
+                    Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                    ItemsSource="{Binding ClassesDisponibles}"
+                    SelectedItem="{Binding SelectedClasse}"
+                    DisplayMemberPath="Nom"
+                    Width="200" Margin="0,0,16,0"/>
+          <TextBox md:HintAssist.Hint="Durée (min)"
+                   Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                   Text="{Binding DureeInput, UpdateSourceTrigger=PropertyChanged}"
+                   Width="110" Margin="0,0,16,0"/>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal">
+          <CheckBox Content="Tiers-temps"
+                    Style="{StaticResource MaterialDesignCheckBox}"
+                    IsChecked="{Binding TiersTemps}"
+                    Margin="0,0,24,0"/>
+          <CheckBox Content="Épreuve ministérielle"
+                    Style="{StaticResource MaterialDesignCheckBox}"
+                    IsChecked="{Binding Ministerielle}"
+                    Margin="0,0,24,0"/>
+          <Button Content="AJOUTER"
+                  Style="{StaticResource MaterialDesignRaisedButton}"
+                  Command="{Binding AddCommand}"
+                  VerticalAlignment="Center"/>
+        </StackPanel>
+      </StackPanel>
+    </md:Card>
+
+    <DataGrid Grid.Row="4"
+              ItemsSource="{Binding Epreuves}"
+              SelectedItem="{Binding Selected}"
+              Style="{StaticResource MaterialDesignDataGrid}"
+              AutoGenerateColumns="False"
+              CanUserAddRows="False"
+              IsReadOnly="True"
+              SelectionMode="Single">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Épreuve"   Binding="{Binding Nom}"       Width="*"/>
+        <DataGridTextColumn Header="Classe"    Binding="{Binding ClasseNom}" Width="200"/>
+        <DataGridTextColumn Header="Durée"     Binding="{Binding Duree}"     Width="100"/>
+        <DataGridTextColumn Header="Options"   Binding="{Binding Options}"   Width="220"/>
+      </DataGrid.Columns>
+    </DataGrid>
+
+    <Button Grid.Row="6"
+            Content="SUPPRIMER LA SÉLECTION"
+            Style="{StaticResource MaterialDesignOutlinedButton}"
+            Command="{Binding DeleteSelectedCommand}"
+            HorizontalAlignment="Left"/>
+  </Grid>
+</UserControl>

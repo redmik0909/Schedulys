@@ -1,19 +1,26 @@
 using System;
 using System.Globalization;
+using Schedulys.Data;
 
-namespace Schedulys.App.ViewModels
+namespace Schedulys.App.ViewModels;
+
+public sealed class MainShellViewModel : ViewModelBase
 {
-    public sealed class MainShellViewModel : ViewModelBase
-    {
-        // Onglets / sous-vues
-        public TeachersViewModel Teachers { get; } = new();
-        public LocationsViewModel Locations { get; } = new();
-        public GroupesViewModel Groupes { get; } = new();
-        public ExamsViewModel Exams { get; } = new();
-        public PlanningViewModel Planning { get; } = new();
+    public TeachersViewModel Teachers { get; }
+    public LocationsViewModel Locations { get; }
+    public GroupesViewModel Groupes { get; }
+    public ExamsViewModel Exams { get; }
+    public PlanningViewModel Planning { get; }
 
-        // App bar (date du jour)
-        public string TodayLabel =>
-            DateTime.Now.ToString("dddd, dd MMMM yyyy", new CultureInfo("fr-CA"));
+    public string TodayLabel =>
+        DateTime.Now.ToString("dddd, dd MMMM yyyy", new CultureInfo("fr-CA"));
+
+    public MainShellViewModel(DataContext db)
+    {
+        Teachers  = new TeachersViewModel(db);
+        Locations = new LocationsViewModel(db);
+        Groupes   = new GroupesViewModel(db);
+        Exams     = new ExamsViewModel(db);
+        Planning  = new PlanningViewModel(db);
     }
 }

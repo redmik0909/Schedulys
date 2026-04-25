@@ -1,4 +1,4 @@
-using Avalonia.Controls;
+using System.Windows.Controls;
 
 namespace Schedulys.App.Views;
 
