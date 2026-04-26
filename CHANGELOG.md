@@ -5,6 +5,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ## [Unreleased]
 
+## [1.2] - 2026-04-26
+
 ### Ajouté
 - Quotas de minutes par jour du cycle scolaire (Jour 1–9) par enseignant
 - Sélecteur de jour du cycle dans le formulaire de création de session
@@ -33,3 +35,4 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 - Exportation des données en Excel/CSV
 - Système de licence avec activation par clé (DPAPI, licence.dat)
 - Page de gestion de licence (statut, renouvellement, expiration)
+
