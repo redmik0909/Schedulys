@@ -1,16 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <Version>1.2</Version>
+    <Version>1.3</Version>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <RootNamespace>Schedulys.App</RootNamespace>
+    <ApplicationIcon>Assets\schedulys.ico</ApplicationIcon>
   </PropertyGroup>
 
   <!-- Exclure les .axaml (Avalonia) de la build WPF -->
   <ItemGroup>
     <None Remove="**\*.axaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\schedulys.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,6 +31,7 @@
     <ProjectReference Include="..\Schedulys.Core\Schedulys.Core.csproj" />
   </ItemGroup>
 </Project>
+
 
 
 
