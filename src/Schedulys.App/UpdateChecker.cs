@@ -11,7 +11,7 @@ namespace Schedulys.App;
 
 public static class UpdateChecker
 {
-    public const string CurrentVersion = "1.3";
+    public const string CurrentVersion = "1.4";
 
     private const string ApiUrl = "https://api.github.com/repos/redmik0909/Schedulys/releases/latest";
 
