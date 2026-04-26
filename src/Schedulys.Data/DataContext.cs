@@ -7,6 +7,7 @@ namespace Schedulys.Data;
 public sealed class DataContext
 {
     private readonly SqliteConnectionFactory _factory;
+    internal SqliteConnectionFactory Factory => _factory;
 
     public DataContext(string dbPath)
     {

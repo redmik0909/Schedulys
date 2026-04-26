@@ -3,116 +3,174 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:views="clr-namespace:Schedulys.App.Views"
+        xmlns:vm="clr-namespace:Schedulys.App.ViewModels"
         Title="Schedulys"
         Height="820" Width="1380"
         MinHeight="680" MinWidth="1100"
         WindowStartupLocation="CenterScreen"
-        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
-        TextElement.FontWeight="Regular"
-        TextElement.FontSize="14"
-        TextOptions.TextFormattingMode="Ideal"
-        TextOptions.TextRenderingMode="Auto"
-        Background="{DynamicResource MaterialDesignPaper}"
-        FontFamily="{DynamicResource MaterialDesignFont}">
-
-  <Window.Resources>
-    <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-  </Window.Resources>
+        TextElement.FontFamily="Segoe UI"
+        TextElement.FontSize="13"
+        Background="{StaticResource AppBg}">
 
   <Grid>
     <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="240"/>
+      <ColumnDefinition Width="220"/>
       <ColumnDefinition Width="*"/>
     </Grid.ColumnDefinitions>
 
-    <!-- ══════════════════════════════════════════════════════
+    <!-- ═══════════════════════════════════════════════════════════
          SIDEBAR
-    ══════════════════════════════════════════════════════ -->
-    <Border Grid.Column="0"
-            Background="#1A237E">
+    ═══════════════════════════════════════════════════════════ -->
+    <Border Grid.Column="0" Background="#0F172A">
       <DockPanel>
 
         <!-- Logo -->
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal"
-                    Margin="22,28,22,24">
-          <md:PackIcon Kind="CalendarClock" Width="28" Height="28"
-                       Foreground="White" VerticalAlignment="Center"/>
-          <TextBlock Text="Schedulys" Foreground="White" FontSize="20"
-                     FontWeight="SemiBold" VerticalAlignment="Center"
-                     Margin="10,0,0,0"/>
-        </StackPanel>
+        <Border DockPanel.Dock="Top" Padding="20,24,20,20">
+          <StackPanel Orientation="Horizontal">
+            <Border Background="#4F46E5" CornerRadius="8" Width="32" Height="32">
+              <md:PackIcon Kind="CalendarClock" Width="18" Height="18"
+                           Foreground="White" HorizontalAlignment="Center"
+                           VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+              <TextBlock Text="Schedulys" Foreground="White" FontSize="15"
+                         FontWeight="SemiBold" LineHeight="18"/>
+              <TextBlock Text="Gestion des examens" Foreground="#4D5D77"
+                         FontSize="10" LineHeight="14"/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
 
-        <Separator DockPanel.Dock="Top" Background="#33FFFFFF" Margin="0,0,0,8"/>
+        <!-- Séparateur -->
+        <Border DockPanel.Dock="Top" Height="1" Background="#1E293B" Margin="0,0,0,8"/>
 
-        <!-- Version en bas -->
-        <TextBlock DockPanel.Dock="Bottom" Text="v1.0"
-                   Foreground="#55FFFFFF" FontSize="11"
-                   HorizontalAlignment="Center" Margin="0,0,0,16"/>
+        <!-- École + version en bas -->
+        <Border DockPanel.Dock="Bottom" Padding="20,12" BorderThickness="0,1,0,0"
+                BorderBrush="#1E293B">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Text="v1.1" Foreground="#334155"
+                       FontSize="10" VerticalAlignment="Bottom"/>
+            <StackPanel>
+              <TextBlock Text="{Binding License.SchoolName, FallbackValue='—'}"
+                         Foreground="#94A3B8" FontSize="11" FontWeight="Medium"
+                         TextTrimming="CharacterEllipsis"/>
+              <TextBlock Text="Licence active" Foreground="#334155" FontSize="10"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
 
-        <Separator DockPanel.Dock="Bottom" Background="#22FFFFFF" Margin="0,8"/>
+        <!-- Navigation -->
+        <ScrollViewer VerticalScrollBarVisibility="Hidden"
+                      HorizontalScrollBarVisibility="Disabled">
+          <ListBox ItemsSource="{Binding NavItems}"
+                   SelectedItem="{Binding SelectedNavItem}"
+                   Background="Transparent"
+                   BorderThickness="0"
+                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                   Padding="0,4,0,4">
 
-        <!-- Nav items -->
-        <ListBox ItemsSource="{Binding NavItems}"
-                 SelectedItem="{Binding SelectedNavItem}"
-                 Background="Transparent"
-                 BorderThickness="0"
-                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                 Margin="0,4,0,0">
-
-          <ListBox.ItemContainerStyle>
-            <Style TargetType="ListBoxItem">
-              <Setter Property="Padding"         Value="0"/>
-              <Setter Property="Margin"          Value="0"/>
-              <Setter Property="BorderThickness" Value="0"/>
-              <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-              <Setter Property="Template">
-                <Setter.Value>
-                  <ControlTemplate TargetType="ListBoxItem">
-                    <Border x:Name="bd"
-                            Background="Transparent"
-                            BorderThickness="3,0,0,0"
-                            BorderBrush="Transparent"
-                            SnapsToDevicePixels="True">
+            <ListBox.ItemContainerStyle>
+              <Style TargetType="ListBoxItem">
+                <Setter Property="Padding"         Value="0"/>
+                <Setter Property="Margin"          Value="0"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                <Setter Property="Template">
+                  <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
                       <ContentPresenter/>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                      <Trigger Property="IsSelected" Value="True">
-                        <Setter TargetName="bd" Property="Background"   Value="#26FFFFFF"/>
-                        <Setter TargetName="bd" Property="BorderBrush"  Value="White"/>
-                      </Trigger>
-                      <MultiTrigger>
-                        <MultiTrigger.Conditions>
-                          <Condition Property="IsMouseOver" Value="True"/>
-                          <Condition Property="IsSelected"  Value="False"/>
-                        </MultiTrigger.Conditions>
-                        <Setter TargetName="bd" Property="Background" Value="#14FFFFFF"/>
-                      </MultiTrigger>
-                    </ControlTemplate.Triggers>
-                  </ControlTemplate>
-                </Setter.Value>
-              </Setter>
-            </Style>
-          </ListBox.ItemContainerStyle>
+                    </ControlTemplate>
+                  </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                  <!-- Items header non sélectionnables -->
+                  <DataTrigger Binding="{Binding IsHeader}" Value="True">
+                    <Setter Property="IsEnabled"  Value="False"/>
+                    <Setter Property="Focusable"  Value="False"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </ListBox.ItemContainerStyle>
 
-          <ListBox.ItemTemplate>
-            <DataTemplate>
-              <StackPanel Orientation="Horizontal" Margin="20,0" Height="46">
-                <md:PackIcon Kind="{Binding Icon}" Width="19" Height="19"
-                             Foreground="White" Opacity="0.8"
-                             VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding Label}" Foreground="White" Opacity="0.88"
-                           FontSize="13.5" VerticalAlignment="Center"
-                           Margin="13,0,0,0"/>
-              </StackPanel>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Grid>
+                  <!-- Label catégorie -->
+                  <Border Padding="20,14,20,4">
+                    <TextBlock Text="{Binding Label}" Foreground="#334155"
+                               FontSize="10" FontWeight="SemiBold">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                          <Setter Property="Visibility" Value="Collapsed"/>
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsHeader}" Value="True">
+                              <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                  </Border>
+
+                  <!-- Nav item -->
+                  <Border x:Name="navItem" Margin="8,1" CornerRadius="6"
+                          Background="Transparent" Padding="12,0" Height="38"
+                          Cursor="Hand">
+                    <Border.Style>
+                      <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding IsHeader}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </Border.Style>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                      <md:PackIcon x:Name="navIcon" Kind="{Binding Icon}"
+                                   Width="16" Height="16" Foreground="#475569"
+                                   VerticalAlignment="Center"/>
+                      <TextBlock x:Name="navLabel" Text="{Binding Label}"
+                                 Foreground="#94A3B8" FontSize="13"
+                                 VerticalAlignment="Center" Margin="10,0,0,0"/>
+                    </StackPanel>
+                  </Border>
+                </Grid>
+
+                <DataTemplate.Triggers>
+                  <!-- Sélectionné -->
+                  <DataTrigger Binding="{Binding IsSelected,
+                               RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                               Value="True">
+                    <Setter TargetName="navItem"  Property="Background" Value="#1E3A5F"/>
+                    <Setter TargetName="navIcon"  Property="Foreground" Value="White"/>
+                    <Setter TargetName="navLabel" Property="Foreground" Value="White"/>
+                  </DataTrigger>
+                  <!-- Hover (non sélectionné) -->
+                  <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                      <Condition Binding="{Binding IsMouseOver,
+                                 RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                 Value="True"/>
+                      <Condition Binding="{Binding IsSelected,
+                                 RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                 Value="False"/>
+                      <Condition Binding="{Binding IsHeader}" Value="False"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter TargetName="navItem" Property="Background" Value="#182334"/>
+                  </MultiDataTrigger>
+                </DataTemplate.Triggers>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </ScrollViewer>
       </DockPanel>
     </Border>
 
-    <!-- ══════════════════════════════════════════════════════
-         ZONE PRINCIPALE (droite)
-    ══════════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════════════
+         ZONE PRINCIPALE
+    ═══════════════════════════════════════════════════════════ -->
     <Grid Grid.Column="1">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto"/>
@@ -121,37 +179,32 @@
 
       <!-- Top bar -->
       <Border Grid.Row="0"
-              Background="{DynamicResource MaterialDesignPaper}"
+              Background="White"
               BorderThickness="0,0,0,1"
-              BorderBrush="{DynamicResource MaterialDesignDivider}"
+              BorderBrush="{StaticResource AppBorder}"
               Padding="28,0">
-        <DockPanel Height="56">
-          <TextBlock DockPanel.Dock="Left"
-                     Text="{Binding CurrentSectionLabel}"
-                     Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
-                     FontWeight="Medium" FontSize="16"
-                     VerticalAlignment="Center"/>
+        <DockPanel Height="60">
           <TextBlock DockPanel.Dock="Right"
                      Text="{Binding TodayLabel}"
-                     Style="{StaticResource MaterialDesignBody2TextBlock}"
-                     Opacity="0.55" VerticalAlignment="Center"/>
+                     FontSize="12" Foreground="{StaticResource AppTextMuted}"
+                     VerticalAlignment="Center"/>
+          <TextBlock Text="{Binding CurrentSectionLabel}"
+                     FontSize="17" FontWeight="SemiBold"
+                     Foreground="{StaticResource AppText}"
+                     VerticalAlignment="Center"/>
         </DockPanel>
       </Border>
 
       <!-- Contenu -->
-      <Grid Grid.Row="1" Background="#F1F3F7">
+      <Grid Grid.Row="1" Background="{StaticResource AppBg}">
 
         <!-- ── Dashboard ── -->
         <ScrollViewer Padding="32,28"
                       VerticalScrollBarVisibility="Auto"
                       Visibility="{Binding IsDashboard, Converter={StaticResource BoolToVis}}">
-          <StackPanel MaxWidth="1000">
+          <StackPanel MaxWidth="1040">
 
-            <TextBlock Text="Tableau de bord"
-                       Style="{StaticResource MaterialDesignHeadline5TextBlock}"
-                       Margin="0,0,0,24"/>
-
-            <!-- 4 stat cards -->
+            <!-- Stat cards -->
             <Grid Margin="0,0,0,16">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
@@ -161,120 +214,115 @@
               </Grid.ColumnDefinitions>
 
               <!-- Enseignants -->
-              <md:Card Grid.Column="0" Padding="0" UniformCornerRadius="10"
-                       Margin="0,0,10,0" md:ElevationAssist.Elevation="Dp2">
+              <Border Grid.Column="0" Style="{StaticResource Card}"
+                      Padding="0" Margin="0,0,12,0">
                 <Grid>
-                  <Border Height="4" VerticalAlignment="Top" Background="#3F51B5"
-                          CornerRadius="10,10,0,0"/>
-                  <DockPanel Margin="20,18,20,18">
+                  <Border Width="4" HorizontalAlignment="Left"
+                          Background="#4F46E5" CornerRadius="10,0,0,10"/>
+                  <DockPanel Margin="22,18,18,18">
                     <md:PackIcon DockPanel.Dock="Right" Kind="AccountTie"
-                                 Width="38" Height="38" Opacity="0.1"
+                                 Width="36" Height="36" Foreground="#E2E8F0"
                                  VerticalAlignment="Center"/>
                     <StackPanel>
-                      <TextBlock Text="{Binding StatEnseignants}" FontSize="40"
-                                 FontWeight="Bold" Foreground="#3F51B5" LineHeight="44"/>
-                      <TextBlock Text="Enseignants" FontSize="12" Opacity="0.6"
-                                 Margin="0,4,0,0"/>
+                      <TextBlock Text="{Binding StatEnseignants}" FontSize="36"
+                                 FontWeight="Bold" Foreground="#4F46E5" LineHeight="40"/>
+                      <TextBlock Text="Enseignants" FontSize="12"
+                                 Foreground="{StaticResource AppTextSub}" Margin="0,3,0,0"/>
                     </StackPanel>
                   </DockPanel>
                 </Grid>
-              </md:Card>
+              </Border>
 
               <!-- Groupes -->
-              <md:Card Grid.Column="1" Padding="0" UniformCornerRadius="10"
-                       Margin="5,0,5,0" md:ElevationAssist.Elevation="Dp2">
+              <Border Grid.Column="1" Style="{StaticResource Card}"
+                      Padding="0" Margin="0,0,12,0">
                 <Grid>
-                  <Border Height="4" VerticalAlignment="Top" Background="#009688"
-                          CornerRadius="10,10,0,0"/>
-                  <DockPanel Margin="20,18,20,18">
+                  <Border Width="4" HorizontalAlignment="Left"
+                          Background="#0EA5E9" CornerRadius="10,0,0,10"/>
+                  <DockPanel Margin="22,18,18,18">
                     <md:PackIcon DockPanel.Dock="Right" Kind="AccountGroup"
-                                 Width="38" Height="38" Opacity="0.1"
+                                 Width="36" Height="36" Foreground="#E2E8F0"
                                  VerticalAlignment="Center"/>
                     <StackPanel>
-                      <TextBlock Text="{Binding StatGroupes}" FontSize="40"
-                                 FontWeight="Bold" Foreground="#009688" LineHeight="44"/>
-                      <TextBlock Text="Groupes" FontSize="12" Opacity="0.6"
-                                 Margin="0,4,0,0"/>
+                      <TextBlock Text="{Binding StatGroupes}" FontSize="36"
+                                 FontWeight="Bold" Foreground="#0EA5E9" LineHeight="40"/>
+                      <TextBlock Text="Groupes" FontSize="12"
+                                 Foreground="{StaticResource AppTextSub}" Margin="0,3,0,0"/>
                     </StackPanel>
                   </DockPanel>
                 </Grid>
-              </md:Card>
+              </Border>
 
               <!-- Locaux -->
-              <md:Card Grid.Column="2" Padding="0" UniformCornerRadius="10"
-                       Margin="5,0,5,0" md:ElevationAssist.Elevation="Dp2">
+              <Border Grid.Column="2" Style="{StaticResource Card}"
+                      Padding="0" Margin="0,0,12,0">
                 <Grid>
-                  <Border Height="4" VerticalAlignment="Top" Background="#F57C00"
-                          CornerRadius="10,10,0,0"/>
-                  <DockPanel Margin="20,18,20,18">
+                  <Border Width="4" HorizontalAlignment="Left"
+                          Background="#F59E0B" CornerRadius="10,0,0,10"/>
+                  <DockPanel Margin="22,18,18,18">
                     <md:PackIcon DockPanel.Dock="Right" Kind="DoorOpen"
-                                 Width="38" Height="38" Opacity="0.1"
+                                 Width="36" Height="36" Foreground="#E2E8F0"
                                  VerticalAlignment="Center"/>
                     <StackPanel>
-                      <TextBlock Text="{Binding StatLocaux}" FontSize="40"
-                                 FontWeight="Bold" Foreground="#F57C00" LineHeight="44"/>
-                      <TextBlock Text="Locaux" FontSize="12" Opacity="0.6"
-                                 Margin="0,4,0,0"/>
+                      <TextBlock Text="{Binding StatLocaux}" FontSize="36"
+                                 FontWeight="Bold" Foreground="#F59E0B" LineHeight="40"/>
+                      <TextBlock Text="Locaux" FontSize="12"
+                                 Foreground="{StaticResource AppTextSub}" Margin="0,3,0,0"/>
                     </StackPanel>
                   </DockPanel>
                 </Grid>
-              </md:Card>
+              </Border>
 
               <!-- Épreuves -->
-              <md:Card Grid.Column="3" Padding="0" UniformCornerRadius="10"
-                       Margin="10,0,0,0" md:ElevationAssist.Elevation="Dp2">
+              <Border Grid.Column="3" Style="{StaticResource Card}" Padding="0">
                 <Grid>
-                  <Border Height="4" VerticalAlignment="Top" Background="#7B1FA2"
-                          CornerRadius="10,10,0,0"/>
-                  <DockPanel Margin="20,18,20,18">
+                  <Border Width="4" HorizontalAlignment="Left"
+                          Background="#8B5CF6" CornerRadius="10,0,0,10"/>
+                  <DockPanel Margin="22,18,18,18">
                     <md:PackIcon DockPanel.Dock="Right" Kind="ClipboardText"
-                                 Width="38" Height="38" Opacity="0.1"
+                                 Width="36" Height="36" Foreground="#E2E8F0"
                                  VerticalAlignment="Center"/>
                     <StackPanel>
-                      <TextBlock Text="{Binding StatEpreuves}" FontSize="40"
-                                 FontWeight="Bold" Foreground="#7B1FA2" LineHeight="44"/>
-                      <TextBlock Text="Épreuves" FontSize="12" Opacity="0.6"
-                                 Margin="0,4,0,0"/>
+                      <TextBlock Text="{Binding StatEpreuves}" FontSize="36"
+                                 FontWeight="Bold" Foreground="#8B5CF6" LineHeight="40"/>
+                      <TextBlock Text="Épreuves" FontSize="12"
+                                 Foreground="{StaticResource AppTextSub}" Margin="0,3,0,0"/>
                     </StackPanel>
                   </DockPanel>
                 </Grid>
-              </md:Card>
+              </Border>
             </Grid>
 
-            <!-- Créneaux cette semaine -->
-            <md:Card Padding="0" UniformCornerRadius="10"
-                     md:ElevationAssist.Elevation="Dp2">
-              <Grid>
-                <Border Height="4" VerticalAlignment="Top" Background="#00897B"
-                        CornerRadius="10,10,0,0"/>
-                <DockPanel Margin="24,18,24,18">
-                  <md:PackIcon DockPanel.Dock="Right" Kind="CalendarMonth"
-                               Width="44" Height="44" Opacity="0.1"
-                               VerticalAlignment="Center"/>
-                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding StatCreneaux}" FontSize="40"
-                               FontWeight="Bold" Foreground="#00897B" LineHeight="44"
-                               VerticalAlignment="Center"/>
-                    <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
-                      <TextBlock Text="sessions d'examen" FontSize="14" FontWeight="Medium"/>
-                      <TextBlock Text="cette semaine" FontSize="12" Opacity="0.55"/>
-                    </StackPanel>
+            <!-- Sessions cette semaine -->
+            <Border Style="{StaticResource Card}" Padding="0" Margin="0,0,0,16">
+              <DockPanel Margin="22,18,22,18">
+                <md:PackIcon DockPanel.Dock="Right" Kind="CalendarMonth"
+                             Width="48" Height="48" Foreground="#E2E8F0"
+                             VerticalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding StatCreneaux}" FontSize="36"
+                             FontWeight="Bold" Foreground="#10B981" LineHeight="40"/>
+                  <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="sessions d'examen" FontSize="14" FontWeight="Medium"
+                               Foreground="{StaticResource AppText}"/>
+                    <TextBlock Text="planifiées cette semaine" FontSize="12"
+                               Foreground="{StaticResource AppTextSub}" Margin="0,2,0,0"/>
                   </StackPanel>
-                </DockPanel>
-              </Grid>
-            </md:Card>
+                </StackPanel>
+              </DockPanel>
+            </Border>
 
-            <!-- Import données initiales -->
-            <md:Card Padding="0" UniformCornerRadius="10" Margin="0,16,0,0"
-                     md:ElevationAssist.Elevation="Dp2">
-              <DockPanel Margin="24,20,24,20">
-                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
-                  <TextBlock Text="Données initiales" FontSize="15" FontWeight="Medium"/>
-                  <TextBlock Text="Importer enseignants, locaux, épreuves et sessions depuis le calendrier scolaire 2025-2026"
-                             FontSize="12" Opacity="0.6" Margin="0,3,0,0"
-                             TextWrapping="Wrap" MaxWidth="500"/>
+            <!-- Import données -->
+            <Border Style="{StaticResource Card}" Padding="0">
+              <DockPanel Margin="22,18,22,18">
+                <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center">
+                  <Button Content="Importer"
+                          Style="{StaticResource BtnPrimary}"
+                          Command="{Binding ImporterDonneesCommand}"
+                          Padding="20,0" Height="36"/>
                   <TextBlock Text="{Binding ImportStatus}"
-                             FontSize="12" Foreground="#00897B" Margin="0,6,0,0">
+                             FontSize="11" Foreground="#10B981"
+                             HorizontalAlignment="Center" Margin="0,8,0,0">
                     <TextBlock.Style>
                       <Style TargetType="TextBlock">
                         <Setter Property="Visibility" Value="Visible"/>
@@ -287,21 +335,21 @@
                     </TextBlock.Style>
                   </TextBlock>
                 </StackPanel>
-                <Button DockPanel.Dock="Right"
-                        Style="{StaticResource MaterialDesignRaisedButton}"
-                        Content="IMPORTER"
-                        Command="{Binding ImporterDonneesCommand}"
-                        Background="#3F51B5" Foreground="White"
-                        VerticalAlignment="Center"
-                        md:ButtonAssist.CornerRadius="6"
-                        Padding="20,8"/>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="Données initiales" FontSize="14" FontWeight="SemiBold"
+                             Foreground="{StaticResource AppText}"/>
+                  <TextBlock Foreground="{StaticResource AppTextSub}"
+                             FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap" MaxWidth="520">
+                    Importer enseignants, locaux, épreuves et sessions depuis le calendrier scolaire 2025-2026
+                  </TextBlock>
+                </StackPanel>
               </DockPanel>
-            </md:Card>
+            </Border>
 
           </StackPanel>
         </ScrollViewer>
 
-        <!-- ── Horaire ── -->
+        <!-- ── Sections dynamiques ── -->
         <Border>
           <Border.Style>
             <Style TargetType="Border">
@@ -316,7 +364,6 @@
           <views:PlanningView DataContext="{Binding Planning}" IsVisibleChanged="OnPlanningVisibleChanged"/>
         </Border>
 
-        <!-- ── Enseignants ── -->
         <Border>
           <Border.Style>
             <Style TargetType="Border">
@@ -331,7 +378,6 @@
           <views:TeachersView DataContext="{Binding Teachers}"/>
         </Border>
 
-        <!-- ── Groupes ── -->
         <Border>
           <Border.Style>
             <Style TargetType="Border">
@@ -346,7 +392,6 @@
           <views:GroupesView DataContext="{Binding Groupes}"/>
         </Border>
 
-        <!-- ── Épreuves ── -->
         <Border>
           <Border.Style>
             <Style TargetType="Border">
@@ -361,7 +406,6 @@
           <views:ExamsView DataContext="{Binding Exams}" IsVisibleChanged="OnExamsVisibleChanged"/>
         </Border>
 
-        <!-- ── Locaux ── -->
         <Border>
           <Border.Style>
             <Style TargetType="Border">
@@ -376,7 +420,6 @@
           <views:LocationsView DataContext="{Binding Locations}"/>
         </Border>
 
-        <!-- ── Exporter ── -->
         <Border>
           <Border.Style>
             <Style TargetType="Border">
@@ -389,6 +432,20 @@
             </Style>
           </Border.Style>
           <views:ExportsView DataContext="{Binding Exports}"/>
+        </Border>
+
+        <Border>
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedNavItem.Section}" Value="licence">
+                  <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <views:LicenceView DataContext="{Binding}"/>
         </Border>
 
       </Grid>

@@ -17,10 +17,10 @@ public sealed class GroupeExamenRepository : IGroupeExamenRepository
         using var cn = _factory.Create();
         await cn.OpenAsync();
         return (int)await cn.ExecuteScalarAsync<long>(
-            @"INSERT INTO GroupesExamen(SessionId, EpreuveId, CodeGroupe, EnseignantId,
-              NbEleves, SurveillantId, SalleId, TiersTemps, DureeMinutes, Type)
-              VALUES (@SessionId, @EpreuveId, @CodeGroupe, @EnseignantId,
-              @NbEleves, @SurveillantId, @SalleId, @TiersTemps, @DureeMinutes, @Type);
+            @"INSERT INTO GroupesExamen(SessionId, EpreuveId, ClasseId, CodeGroupe, EnseignantId,
+              NbEleves, SurveillantId, SalleId, TiersTemps, DureeMinutes, Type, HeureFin, PremierDepart)
+              VALUES (@SessionId, @EpreuveId, @ClasseId, @CodeGroupe, @EnseignantId,
+              @NbEleves, @SurveillantId, @SalleId, @TiersTemps, @DureeMinutes, @Type, @HeureFin, @PremierDepart);
               SELECT last_insert_rowid();", g);
     }
 
@@ -112,9 +112,10 @@ public sealed class GroupeExamenRepository : IGroupeExamenRepository
         await cn.OpenAsync();
         var rows = await cn.ExecuteAsync(
             @"UPDATE GroupesExamen SET SessionId=@SessionId, EpreuveId=@EpreuveId,
-              CodeGroupe=@CodeGroupe, EnseignantId=@EnseignantId, NbEleves=@NbEleves,
-              SurveillantId=@SurveillantId, SalleId=@SalleId, TiersTemps=@TiersTemps,
-              DureeMinutes=@DureeMinutes, Type=@Type WHERE Id=@Id", g);
+              ClasseId=@ClasseId, CodeGroupe=@CodeGroupe, EnseignantId=@EnseignantId,
+              NbEleves=@NbEleves, SurveillantId=@SurveillantId, SalleId=@SalleId,
+              TiersTemps=@TiersTemps, DureeMinutes=@DureeMinutes, Type=@Type,
+              HeureFin=@HeureFin, PremierDepart=@PremierDepart WHERE Id=@Id", g);
         return rows > 0;
     }
 

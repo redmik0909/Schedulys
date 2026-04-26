@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using Dapper;
 using Schedulys.Core.Models;
 
 namespace Schedulys.Data;
@@ -12,9 +13,14 @@ public static class DataSeeder
 
     public static async Task<bool> IsAlreadySeededAsync(DataContext db)
     {
-        // On vérifie les salles (jamais créées manuellement) plutôt que les profs
         var salles = await db.Salles.ListAsync(annee: ANNEE);
         return salles.Count >= 5;
+    }
+
+    public static async Task<bool> AreQuotasParJourSeededAsync(DataContext db)
+    {
+        var quotas = await db.Quotas.ListAsync(annee: ANNEE);
+        return quotas.Any(q => q.JourCycle > 0);
     }
 
     public static async Task SeedAsync(DataContext db)
@@ -52,7 +58,41 @@ public static class DataSeeder
 
     // ─── Profs ──────────────────────────────────────────────────────────────
 
-    private static async Task<Dictionary<string, int>> SeedProfsAsync(DataContext db)
+    // ─── Vérification / reset enseignants ──────────────────────────────────
+
+    public static async Task<bool> NeedsProfsResetAsync(DataContext db)
+    {
+        var profs = await db.Profs.ListAsync();
+        return profs.Any(p =>
+            p.Nom.Contains("Almeida-Farias", StringComparison.OrdinalIgnoreCase) ||
+            p.Nom.Contains("Vonesch",        StringComparison.OrdinalIgnoreCase));
+    }
+
+    public static async Task ResetProfsAsync(DataContext db)
+    {
+        using var cn = db.Factory.Create();
+        await cn.OpenAsync();
+        await cn.ExecuteAsync("DELETE FROM QuotasMinutes");
+        await cn.ExecuteAsync("DELETE FROM Profs");
+
+        var profIds = await SeedProfsAsync(db, includeExtras: false);
+
+        foreach (var (htmlName, jours) in QuotasParJourData)
+        {
+            var key = ToTitleCase(htmlName).ToLowerInvariant();
+            if (!profIds.TryGetValue(key, out var profId)) continue;
+            for (int j = 1; j <= 9; j++)
+                await db.Quotas.UpsertAsync(new QuotaMinutes
+                {
+                    ProfId        = profId,
+                    JourCycle     = j,
+                    MinutesMax    = jours[j - 1],
+                    AnneeScolaire = ANNEE,
+                });
+        }
+    }
+
+    private static async Task<Dictionary<string, int>> SeedProfsAsync(DataContext db, bool includeExtras = true)
     {
         var profs = new (string HtmlName, string Role)[]
         {
@@ -157,16 +197,133 @@ public static class DataSeeder
             dict[nom.ToLowerInvariant()] = id;
         }
 
-        foreach (var (nom, role) in extras)
+        if (includeExtras)
         {
-            var id = await db.Profs.CreateAsync(new Prof { Nom = nom, Role = role, Annee = ANNEE });
-            dict[nom.ToLowerInvariant()] = id;
+            foreach (var (nom, role) in extras)
+            {
+                var id = await db.Profs.CreateAsync(new Prof { Nom = nom, Role = role, Annee = ANNEE });
+                dict[nom.ToLowerInvariant()] = id;
+            }
         }
 
         return dict;
     }
 
     // ─── Quotas minutes/jour ─────────────────────────────────────────────────
+
+    // Données brutes HTML : Jour1..Jour9 par enseignant
+    private static readonly (string HtmlName, int[] Jours)[] QuotasParJourData = new[]
+    {
+        ("ADAM, NADIA",             new[]{  6,  20,  16,   6,  18,  21,   8,  18,   6}),
+        ("ATAMNIA, BACHIR",         new[]{240, 150, 300, 300, 225, 150, 225, 300, 240}),
+        ("AYARI, RAFIKA",           new[]{150, 300, 205, 225, 225, 270, 235, 235, 225}),
+        ("BASSOWOU, KODJO",         new[]{150, 265, 235, 150, 240, 290, 225, 150, 225}),
+        ("BEAUSOLEIL-HUNEAULT, S.", new[]{240, 247, 210, 245, 195, 225, 237, 235, 270}),
+        ("BELAL, CHERIFA",          new[]{175, 235, 225, 225, 225,  75, 240, 255, 225}),
+        ("BENSIALI, LINDA",         new[]{250, 165, 238, 225, 160, 225, 238, 240, 178}),
+        ("BENZENATI, FARID",        new[]{256, 231, 150, 285, 175, 285, 210, 231, 231}),
+        ("BENZINE, LAMIA",          new[]{300, 173, 225, 173, 225, 238, 150, 240, 238}),
+        ("BISAILLON, ELISABETH",    new[]{ 75,  75, 150,  75, 225,  75, 225,  75,   0}),
+        ("BONHOMME, CATHERINE",     new[]{190, 225, 225, 225, 235, 175, 235, 210, 300}),
+        ("BOUAICHE, FADILA",        new[]{225, 235, 170, 300,  75, 300, 170, 300, 235}),
+        ("BOUCHER, MARGUERITE",     new[]{300,  75, 300, 190, 225, 225, 165, 300, 175}),
+        ("BOUMAZA, WALID",          new[]{225, 150, 250, 225, 163, 238, 173, 225, 240}),
+        ("BROCHU, JENNIFER",        new[]{225, 150, 240, 225, 240, 280, 172, 257, 190}),
+        ("CHANTAL, SYLVIANNE",      new[]{235, 300, 300, 150,  75, 285, 242, 235, 242}),
+        ("CHARLES, KISCHNER",       new[]{225, 178, 300,  75, 300, 100, 300, 163, 235}),
+        ("CHAUVIN, M-O.",           new[]{235, 225, 370, 190, 165, 262, 247, 180, 150}),
+        ("CIOLPAN, GRATIELA",       new[]{250, 150, 261, 257, 150, 262, 165, 225, 261}),
+        ("CORDEAU, PASCALE",        new[]{300, 300, 300, 300, 150, 300, 300, 300, 300}),
+        ("COUTURE, PHILIPPE",       new[]{245,  75, 150, 150,  75, 170,   0,  75,  75}),
+        ("DESTROISMAISONS, N.",     new[]{295, 150, 225, 165, 300, 165, 240, 160, 235}),
+        ("DIEDHIOU, NFALLY",        new[]{160, 241, 225, 175, 256, 225, 150, 241, 225}),
+        ("DIONNE, PIERRE-LUC",      new[]{225, 300, 225, 225, 150, 252, 250, 242, 105}),
+        ("DJEDDI, REZIKA",          new[]{255, 225, 225, 225, 300, 150, 300, 225, 225}),
+        ("DUCHESNE, GENEVIÈVE",     new[]{300, 250, 165, 270, 150, 250, 295, 225, 225}),
+        ("DUMAY, MARTINE",          new[]{  0,   0,   0,   0,  10,   0,  10,  10,  10}),
+        ("FERAZ, FATIMA",           new[]{150, 225, 231, 225, 160, 231, 246, 150, 256}),
+        ("FLEIFEL, VINCENT",        new[]{247, 225, 280, 225, 150, 247, 235, 270, 235}),
+        ("FOURNIER, M-F.",          new[]{150, 225, 195, 225, 165, 245, 225, 160, 300}),
+        ("GAGNON, ALEXIS",          new[]{300, 170, 250,  85, 170, 300, 245, 285, 300}),
+        ("GHOWIL, AMIR",            new[]{165, 300, 225, 210, 225, 165, 225, 235, 160}),
+        ("GIRARD, FRANCIS",         new[]{225, 175, 225, 267, 225, 237, 225, 175, 150}),
+        ("GIRAUD, SHEIRLEY",        new[]{235, 225, 246, 150, 301, 210, 231, 171, 225}),
+        ("GRÉGOIRE, FRANCIS",       new[]{150, 300, 315, 165, 270, 115, 240, 360, 160}),
+        ("GUEGUEN-SOULIER, N.",     new[]{165, 225, 225, 285, 225, 150, 240, 210, 225}),
+        ("HIDJA, HAYETTE",          new[]{300, 176,  85, 251, 300, 150, 246,  75, 300}),
+        ("HOCHEREAU, ALAIN",        new[]{225, 225, 160, 240, 225, 160, 265, 225, 150}),
+        ("HOUARI, YAZID",           new[]{225, 225, 235, 225, 150, 245, 300, 245, 165}),
+        ("HOWA, SONIA",             new[]{225, 250, 195, 235, 150, 225, 250, 225, 170}),
+        ("JOLIN, JÉRÔME",           new[]{270, 237, 240, 267, 240, 225, 235, 150, 160}),
+        ("JONCAS, CINDY",           new[]{235, 240, 150, 225, 240, 250, 225, 240, 225}),
+        ("JOURNÉ, LUC",             new[]{150, 185, 245, 300, 235, 235, 185, 305, 150}),
+        ("KARANGWA, MIREILLE",      new[]{240, 235, 300, 225, 105, 225, 115, 240, 235}),
+        ("KHELIFI, MOHSEN",         new[]{231, 231, 195, 265, 186, 231, 150, 250, 240}),
+        ("LACOMBE, DAVID",          new[]{105, 280, 225, 245, 225, 165, 300, 285, 200}),
+        ("LALONGE, CHANTAL",        new[]{195, 235, 242, 250,  75, 225, 225, 300, 257}),
+        ("LANTHIER, SARAH",         new[]{240, 150, 240, 150, 250, 255, 160, 235, 225}),
+        ("LAOUINA, SAID",           new[]{165, 225, 243, 255, 150, 225, 225, 248, 168}),
+        ("LARIVIÈRE TURCOTTE, K.",  new[]{242, 240, 150, 250, 177, 300, 225,  75, 225}),
+        ("LAURENDEAU, ETHEL",       new[]{150, 235, 165, 300, 225, 300, 235, 150, 240}),
+        ("LAVOIE, CLAUDIA",         new[]{240, 180, 247, 250, 225, 237, 185, 225, 180}),
+        ("LECONTE, ELVIS",          new[]{  8,  21,   8,  19,  19,   8,  31,   6,   6}),
+        ("MABSOUT, MINA",           new[]{175, 235, 225, 225, 182, 225, 225, 167, 375}),
+        ("MANÉ, SOULEYMANE",        new[]{240, 207, 150, 150, 312, 235, 265, 259, 180}),
+        ("MERCIER, VÉRONIQUE",      new[]{260, 210, 285, 237, 160, 250, 172, 300, 150}),
+        ("MICHAUD-GUILBAULT, É.",   new[]{240, 300, 170, 150, 150, 300, 250, 150, 180}),
+        ("MJIDOU, MOHAMED OMAR",    new[]{225, 240, 175, 225, 235, 225, 235, 255, 240}),
+        ("MONTALVO, JHEINSEN",      new[]{ 95, 225, 175, 240, 240, 160, 235, 150, 150}),
+        ("MORIN, KEVIN",            new[]{225, 225, 195, 235, 235, 225, 150, 240, 240}),
+        ("MORRIS, BRIGITTE",        new[]{225, 225, 225, 300, 150, 225, 225, 150, 225}),
+        ("PAQUETTE, ANNE",          new[]{310, 175, 235, 225, 150, 225, 250, 300, 150}),
+        ("PELLAND, MARYLÈNE",       new[]{150, 190, 235, 235, 225, 300, 190, 300,  75}),
+        ("PILOTE, ANDREA",          new[]{210, 262, 210, 237, 165, 225, 225, 235, 225}),
+        ("POITRAS-QUINIOU, C.",     new[]{ 15,   0,  15,  15,   0,  15,   0,   0,  15}),
+        ("PROPHETE, JOCELYN",       new[]{225, 100, 225, 225, 300, 175, 115, 255, 300}),
+        ("PROVOST, CHRISTIAN",      new[]{300,  75, 160, 250, 150, 225,  75, 150, 165}),
+        ("RACHEDI, KARIMA",         new[]{225, 188, 253, 150, 238, 177, 225, 240, 252}),
+        ("ROBERGE, KARINE",         new[]{240,  75, 225, 225, 300, 235, 160, 300, 240}),
+        ("ROBIDAS, PHILIPPE",       new[]{210, 240, 225, 150, 240, 225, 250, 325, 270}),
+        ("ROUSSELLE, NICHOLAS",     new[]{225, 240, 225, 150, 255, 160, 260, 185, 225}),
+        ("RUBIO, ANGELINA",         new[]{302, 235, 175, 240, 225, 257, 240, 120, 300}),
+        ("RUIZ, MAURICIO",          new[]{225, 255, 225, 150, 275, 225, 150, 240, 160}),
+        ("SAHLI, ADEL KHEMAIS",     new[]{275, 240, 150, 190, 225, 225, 240, 165, 225}),
+        ("SANSAL, AMEL",            new[]{240, 150, 255, 225, 225, 250,  75, 245, 225}),
+        ("SAVARD-GOURDE, A-A.",     new[]{237, 240, 225, 177, 235, 202, 237, 150, 225}),
+        ("SAÏDI, NABIL",            new[]{ 75, 310, 240, 235, 160, 205, 265, 225, 235}),
+        ("ST-AMANT-PROULX, A.",     new[]{300, 300,  90, 150, 285, 300, 300, 185, 150}),
+        ("TAALOUCHT, SOUAD",        new[]{250, 225, 225, 195, 235, 164, 254, 270, 150}),
+        ("TORRES-BASCOUR, N.",      new[]{245,  75, 235, 225, 240, 160, 225, 225, 260}),
+        ("TOSKA, GLITIANA",         new[]{210, 251, 150, 285, 246, 241, 225, 150, 231}),
+        ("TREMBLAY, N-J.",          new[]{190, 285, 210, 295, 225, 180, 225, 150, 315}),
+        ("XHERAJ, ZHANKLINA",       new[]{ 75,   0, 116,   0,   0,   0,  75,   0,  75}),
+    };
+
+    public static async Task SeedQuotasParJourAsync(DataContext db)
+    {
+        var profs   = await db.Profs.ListAsync();
+        var profDict = profs.ToDictionary(
+            p => p.Nom.ToLowerInvariant(),
+            p => p.Id,
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (htmlName, jours) in QuotasParJourData)
+        {
+            var key = ToTitleCase(htmlName).ToLowerInvariant();
+            if (!profDict.TryGetValue(key, out var profId)) continue;
+
+            for (int j = 1; j <= 9; j++)
+            {
+                await db.Quotas.UpsertAsync(new QuotaMinutes
+                {
+                    ProfId        = profId,
+                    JourCycle     = j,
+                    MinutesMax    = jours[j - 1],
+                    AnneeScolaire = ANNEE,
+                });
+            }
+        }
+    }
 
     private static async Task SeedQuotasAsync(DataContext db, Dictionary<string, int> profIds)
     {
@@ -265,6 +422,7 @@ public static class DataSeeder
                 await db.Quotas.UpsertAsync(new QuotaMinutes
                 {
                     ProfId        = profId,
+                    JourCycle     = 0,
                     MinutesMax    = (int)Math.Round(total / 9.0),
                     AnneeScolaire = ANNEE,
                 });

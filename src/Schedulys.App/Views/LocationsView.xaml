@@ -3,69 +3,51 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
 
-  <Grid Margin="24,20">
-    <Grid.RowDefinitions>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="16"/>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="16"/>
-      <RowDefinition Height="*"/>
-      <RowDefinition Height="12"/>
-      <RowDefinition Height="Auto"/>
-    </Grid.RowDefinitions>
+  <Grid Margin="28,24">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="300"/>
+      <ColumnDefinition Width="20"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
 
-    <TextBlock Grid.Row="0" Text="Locaux"
-               Style="{StaticResource MaterialDesignHeadline5TextBlock}"/>
+    <!-- ── Panneau gauche : formulaire ── -->
+    <StackPanel Grid.Column="0">
+      <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+        <StackPanel>
+          <TextBlock Text="Ajouter un local" Style="{StaticResource CardTitle}"/>
 
-    <md:Card Grid.Row="2" Padding="20" UniformCornerRadius="8">
-      <StackPanel>
-        <TextBlock Text="Ajouter une salle"
-                   Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
-                   Margin="0,0,0,16"/>
-        <StackPanel Orientation="Horizontal">
-          <TextBox md:HintAssist.Hint="Nom de la salle"
+          <TextBlock Text="NOM" Style="{StaticResource FieldLabel}"/>
+          <TextBox md:HintAssist.Hint="Ex : Gym A"
                    Style="{StaticResource MaterialDesignOutlinedTextBox}"
                    Text="{Binding NomInput, UpdateSourceTrigger=PropertyChanged}"
-                   Width="260" Margin="0,0,16,0"/>
-          <TextBox md:HintAssist.Hint="Capacité"
+                   Margin="0,0,0,12"/>
+
+          <TextBlock Text="CAPACITÉ" Style="{StaticResource FieldLabel}"/>
+          <TextBox md:HintAssist.Hint="Ex : 30"
                    Style="{StaticResource MaterialDesignOutlinedTextBox}"
                    Text="{Binding CapaciteInput, UpdateSourceTrigger=PropertyChanged}"
-                   Width="100" Margin="0,0,16,0"/>
-          <ComboBox md:HintAssist.Hint="Type"
-                    Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                   Margin="0,0,0,12"/>
+
+          <TextBlock Text="TYPE" Style="{StaticResource FieldLabel}"/>
+          <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
                     ItemsSource="{Binding Types}"
                     SelectedItem="{Binding SelectedType}"
-                    Width="200" Margin="0,0,16,0"/>
-          <Button Content="AJOUTER"
-                  Style="{StaticResource MaterialDesignRaisedButton}"
-                  Command="{Binding AddCommand}"
-                  VerticalAlignment="Center"/>
+                    Margin="0,0,0,16"/>
+
+          <Button Content="Ajouter" Command="{Binding AddCommand}"
+                  Style="{StaticResource BtnPrimary}"
+                  HorizontalAlignment="Left" Padding="20,0"/>
         </StackPanel>
-      </StackPanel>
-    </md:Card>
+      </Border>
 
-    <DataGrid Grid.Row="4"
-              ItemsSource="{Binding Salles}"
-              SelectedItem="{Binding Selected}"
-              Style="{StaticResource MaterialDesignDataGrid}"
-              AutoGenerateColumns="False"
-              CanUserAddRows="False"
-              IsReadOnly="True"
-              SelectionMode="Single">
-      <DataGrid.Columns>
-        <DataGridTextColumn Header="Nom"      Binding="{Binding Nom}"      Width="*"/>
-        <DataGridTextColumn Header="Capacité" Binding="{Binding Capacite}" Width="100"/>
-        <DataGridTextColumn Header="Type"     Binding="{Binding Type}"     Width="200"/>
-      </DataGrid.Columns>
-    </DataGrid>
+      <Button Content="Supprimer la sélection" Style="{StaticResource BtnDanger}"
+              Command="{Binding DeleteSelectedCommand}" HorizontalAlignment="Left"/>
 
-    <DockPanel Grid.Row="6">
-      <TextBlock DockPanel.Dock="Right" Foreground="#D32F2F"
-                 Text="{Binding Erreur}" FontSize="12" VerticalAlignment="Center"
-                 Margin="12,0,0,0">
+      <TextBlock Text="{Binding Erreur}" Foreground="{StaticResource AppDanger}"
+                 FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap">
         <TextBlock.Style>
           <Style TargetType="TextBlock">
-            <Setter Property="Visibility" Value="Visible"/>
+            <Setter Property="Visibility" Value="Collapsed"/>
             <Style.Triggers>
               <DataTrigger Binding="{Binding Erreur}" Value="">
                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -74,10 +56,27 @@
           </Style>
         </TextBlock.Style>
       </TextBlock>
-      <Button Content="SUPPRIMER LA SÉLECTION"
-              Style="{StaticResource MaterialDesignOutlinedButton}"
-              Command="{Binding DeleteSelectedCommand}"
-              HorizontalAlignment="Left"/>
-    </DockPanel>
+    </StackPanel>
+
+    <!-- ── Colonne droite : table ── -->
+    <Grid Grid.Column="2">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="12"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+
+      <TextBlock Grid.Row="0" Text="Locaux" Style="{StaticResource PageTitle}" Margin="0"/>
+
+      <DataGrid Grid.Row="2"
+                ItemsSource="{Binding Salles}"
+                SelectedItem="{Binding Selected}">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="NOM"      Binding="{Binding Nom}"      Width="*"/>
+          <DataGridTextColumn Header="CAPACITÉ" Binding="{Binding Capacite}" Width="110"/>
+          <DataGridTextColumn Header="TYPE"     Binding="{Binding Type}"     Width="220"/>
+        </DataGrid.Columns>
+      </DataGrid>
+    </Grid>
   </Grid>
 </UserControl>

@@ -5,9 +5,272 @@
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
-        <md:BundledTheme BaseTheme="Light" PrimaryColor="Indigo" SecondaryColor="Teal"/>
+        <md:BundledTheme BaseTheme="Light" PrimaryColor="DeepPurple" SecondaryColor="Indigo"/>
         <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml"/>
       </ResourceDictionary.MergedDictionaries>
+
+      <!-- ═══════════════════════════════════════
+           Palette
+      ═══════════════════════════════════════ -->
+      <SolidColorBrush x:Key="AppBg"           Color="#F1F5F9"/>
+      <SolidColorBrush x:Key="AppSurface"      Color="#FFFFFF"/>
+      <SolidColorBrush x:Key="AppBorder"       Color="#E2E8F0"/>
+      <SolidColorBrush x:Key="AppText"         Color="#0F172A"/>
+      <SolidColorBrush x:Key="AppTextSub"      Color="#64748B"/>
+      <SolidColorBrush x:Key="AppTextMuted"    Color="#94A3B8"/>
+      <SolidColorBrush x:Key="AppAccent"       Color="#4F46E5"/>
+      <SolidColorBrush x:Key="AppAccentHover"  Color="#4338CA"/>
+      <SolidColorBrush x:Key="AppAccentLight"  Color="#EEF2FF"/>
+      <SolidColorBrush x:Key="AppSuccess"      Color="#16A34A"/>
+      <SolidColorBrush x:Key="AppSuccessLight" Color="#F0FDF4"/>
+      <SolidColorBrush x:Key="AppWarning"      Color="#D97706"/>
+      <SolidColorBrush x:Key="AppWarningLight" Color="#FFFBEB"/>
+      <SolidColorBrush x:Key="AppDanger"       Color="#DC2626"/>
+      <SolidColorBrush x:Key="AppDangerLight"  Color="#FEF2F2"/>
+      <SolidColorBrush x:Key="AppHover"        Color="#F8FAFC"/>
+
+      <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+      <!-- ═══════════════════════════════════════
+           Carte
+      ═══════════════════════════════════════ -->
+      <Style x:Key="Card" TargetType="Border">
+        <Setter Property="Background"      Value="{StaticResource AppSurface}"/>
+        <Setter Property="BorderBrush"     Value="{StaticResource AppBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius"    Value="10"/>
+        <Setter Property="Padding"         Value="20"/>
+      </Style>
+
+      <!-- ═══════════════════════════════════════
+           Typographie
+      ═══════════════════════════════════════ -->
+      <Style x:Key="PageTitle" TargetType="TextBlock">
+        <Setter Property="FontSize"   Value="20"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource AppText}"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="Margin"     Value="0,0,0,20"/>
+      </Style>
+
+      <Style x:Key="CardTitle" TargetType="TextBlock">
+        <Setter Property="FontSize"   Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource AppText}"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="Margin"     Value="0,0,0,14"/>
+      </Style>
+
+      <Style x:Key="FieldLabel" TargetType="TextBlock">
+        <Setter Property="FontSize"   Value="11"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="Foreground" Value="{StaticResource AppTextSub}"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="Margin"     Value="0,0,0,4"/>
+      </Style>
+
+      <!-- ═══════════════════════════════════════
+           Boutons
+      ═══════════════════════════════════════ -->
+
+      <!-- Primary (keyed — n'écrase PAS les boutons internes des contrôles composites) -->
+      <Style x:Key="BtnPrimary" TargetType="Button">
+        <Setter Property="Background"      Value="{StaticResource AppAccent}"/>
+        <Setter Property="Foreground"      Value="White"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding"         Value="16,0"/>
+        <Setter Property="Height"          Value="34"/>
+        <Setter Property="FontSize"        Value="12"/>
+        <Setter Property="FontWeight"      Value="Medium"/>
+        <Setter Property="FontFamily"      Value="Segoe UI"/>
+        <Setter Property="Cursor"          Value="Hand"/>
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="Button">
+              <Border x:Name="bd"
+                      Background="{TemplateBinding Background}"
+                      CornerRadius="6"
+                      Padding="{TemplateBinding Padding}"
+                      SnapsToDevicePixels="True">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Setter TargetName="bd" Property="Background" Value="{StaticResource AppAccentHover}"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                  <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                  <Setter TargetName="bd" Property="Opacity" Value="0.4"/>
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+
+      <!-- Secondary (outlined) -->
+      <Style x:Key="BtnSecondary" TargetType="Button">
+        <Setter Property="Background"      Value="{StaticResource AppSurface}"/>
+        <Setter Property="Foreground"      Value="{StaticResource AppText}"/>
+        <Setter Property="BorderBrush"     Value="{StaticResource AppBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding"         Value="16,0"/>
+        <Setter Property="Height"          Value="34"/>
+        <Setter Property="FontSize"        Value="12"/>
+        <Setter Property="FontWeight"      Value="Medium"/>
+        <Setter Property="FontFamily"      Value="Segoe UI"/>
+        <Setter Property="Cursor"          Value="Hand"/>
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="Button">
+              <Border x:Name="bd"
+                      Background="{TemplateBinding Background}"
+                      BorderBrush="{TemplateBinding BorderBrush}"
+                      BorderThickness="{TemplateBinding BorderThickness}"
+                      CornerRadius="6" Padding="{TemplateBinding Padding}">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Setter TargetName="bd" Property="Background" Value="{StaticResource AppHover}"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                  <Setter TargetName="bd" Property="Opacity" Value="0.4"/>
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+
+      <!-- Danger (outlined rouge) -->
+      <Style x:Key="BtnDanger" TargetType="Button">
+        <Setter Property="Background"      Value="{StaticResource AppSurface}"/>
+        <Setter Property="Foreground"      Value="{StaticResource AppDanger}"/>
+        <Setter Property="BorderBrush"     Value="#FECACA"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding"         Value="16,0"/>
+        <Setter Property="Height"          Value="34"/>
+        <Setter Property="FontSize"        Value="12"/>
+        <Setter Property="FontWeight"      Value="Medium"/>
+        <Setter Property="FontFamily"      Value="Segoe UI"/>
+        <Setter Property="Cursor"          Value="Hand"/>
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="Button">
+              <Border x:Name="bd"
+                      Background="{TemplateBinding Background}"
+                      BorderBrush="{TemplateBinding BorderBrush}"
+                      BorderThickness="{TemplateBinding BorderThickness}"
+                      CornerRadius="6" Padding="{TemplateBinding Padding}">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Setter TargetName="bd" Property="Background" Value="{StaticResource AppDangerLight}"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                  <Setter TargetName="bd" Property="Opacity" Value="0.4"/>
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+
+      <!-- Ghost -->
+      <Style x:Key="BtnGhost" TargetType="Button">
+        <Setter Property="Background"      Value="Transparent"/>
+        <Setter Property="Foreground"      Value="{StaticResource AppTextSub}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding"         Value="12,0"/>
+        <Setter Property="Height"          Value="32"/>
+        <Setter Property="FontSize"        Value="12"/>
+        <Setter Property="FontFamily"      Value="Segoe UI"/>
+        <Setter Property="Cursor"          Value="Hand"/>
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="Button">
+              <Border x:Name="bd" Background="{TemplateBinding Background}"
+                      CornerRadius="5" Padding="{TemplateBinding Padding}">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Setter TargetName="bd" Property="Background" Value="{StaticResource AppHover}"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                  <Setter TargetName="bd" Property="Opacity" Value="0.4"/>
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+
+      <!-- ═══════════════════════════════════════
+           DataGrid
+      ═══════════════════════════════════════ -->
+      <Style TargetType="DataGrid" BasedOn="{StaticResource MaterialDesignDataGrid}">
+        <Setter Property="BorderBrush"              Value="{StaticResource AppBorder}"/>
+        <Setter Property="BorderThickness"          Value="1"/>
+        <Setter Property="RowBackground"            Value="White"/>
+        <Setter Property="AlternatingRowBackground" Value="#F8FAFC"/>
+        <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource AppBorder}"/>
+        <Setter Property="VerticalGridLinesBrush"   Value="Transparent"/>
+        <Setter Property="GridLinesVisibility"      Value="Horizontal"/>
+        <Setter Property="ColumnHeaderHeight"       Value="36"/>
+        <Setter Property="RowHeight"                Value="38"/>
+        <Setter Property="AutoGenerateColumns"      Value="False"/>
+        <Setter Property="CanUserAddRows"           Value="False"/>
+        <Setter Property="IsReadOnly"               Value="True"/>
+        <Setter Property="SelectionMode"            Value="Single"/>
+      </Style>
+
+      <!-- Headers : BasedOn du type implicit (fonctionne sans clé nommée MD) -->
+      <Style TargetType="DataGridColumnHeader"
+             BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+        <Setter Property="Background"      Value="#F8FAFC"/>
+        <Setter Property="Foreground"      Value="#64748B"/>
+        <Setter Property="FontSize"        Value="11"/>
+        <Setter Property="FontWeight"      Value="SemiBold"/>
+        <Setter Property="Padding"         Value="14,0"/>
+        <Setter Property="BorderBrush"     Value="{StaticResource AppBorder}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="FontFamily"      Value="Segoe UI"/>
+      </Style>
+
+      <Style TargetType="DataGridRow"
+             BasedOn="{StaticResource {x:Type DataGridRow}}">
+        <Setter Property="FontSize"   Value="13"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Style.Triggers>
+          <Trigger Property="IsSelected" Value="True">
+            <Setter Property="Background" Value="{StaticResource AppAccentLight}"/>
+          </Trigger>
+          <Trigger Property="IsMouseOver" Value="True">
+            <Setter Property="Background" Value="{StaticResource AppHover}"/>
+          </Trigger>
+        </Style.Triggers>
+      </Style>
+
+      <Style TargetType="DataGridCell"
+             BasedOn="{StaticResource {x:Type DataGridCell}}">
+        <Setter Property="Padding"         Value="14,0"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="FontFamily"      Value="Segoe UI"/>
+        <Setter Property="FontSize"        Value="13"/>
+        <Style.Triggers>
+          <Trigger Property="IsSelected" Value="True">
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="Foreground"      Value="#3730A3"/>
+            <Setter Property="BorderThickness" Value="0"/>
+          </Trigger>
+        </Style.Triggers>
+      </Style>
+
     </ResourceDictionary>
   </Application.Resources>
 </Application>

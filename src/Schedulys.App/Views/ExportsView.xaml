@@ -3,57 +3,148 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
 
-  <Grid Margin="24,20">
-    <Grid.RowDefinitions>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="24"/>
-      <RowDefinition Height="Auto"/>
-    </Grid.RowDefinitions>
+  <ScrollViewer Margin="28,24" VerticalScrollBarVisibility="Auto">
+    <StackPanel MaxWidth="560" HorizontalAlignment="Left">
 
-    <TextBlock Grid.Row="0" Text="Exporter"
-               Style="{StaticResource MaterialDesignHeadline5TextBlock}"/>
+      <TextBlock Text="Exporter" Style="{StaticResource PageTitle}"/>
 
-    <md:Card Grid.Row="2" Padding="24" UniformCornerRadius="8" MaxWidth="520" HorizontalAlignment="Left">
-      <StackPanel>
-        <TextBlock Text="Export CSV — lisible dans Excel"
-                   Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
-                   Margin="0,0,0,20"/>
+      <!-- ── Feuille de planification Excel ── -->
+      <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+            <Border Background="{StaticResource AppAccentLight}"
+                    CornerRadius="8" Width="36" Height="36">
+              <md:PackIcon Kind="MicrosoftExcel" Width="18" Height="18"
+                           Foreground="{StaticResource AppAccent}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+              <TextBlock Text="Feuille de planification" FontSize="14" FontWeight="SemiBold"
+                         Foreground="{StaticResource AppText}"/>
+              <TextBlock Text="Format Excel · colonnes : description, code, enseignant, élèves, durée, 1er départ, surveillant, local"
+                         FontSize="11" Foreground="{StaticResource AppTextSub}" TextWrapping="Wrap"/>
+            </StackPanel>
+          </StackPanel>
 
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-          <DatePicker md:HintAssist.Hint="Du"
-                      Style="{StaticResource MaterialDesignDatePicker}"
-                      SelectedDate="{Binding DateDebut}"
-                      Width="160" Margin="0,0,20,0"/>
-          <DatePicker md:HintAssist.Hint="Au"
-                      Style="{StaticResource MaterialDesignDatePicker}"
-                      SelectedDate="{Binding DateFin}"
-                      Width="160"/>
+          <Border Height="1" Background="{StaticResource AppBorder}" Margin="0,0,0,16"/>
+
+          <TextBlock Text="PÉRIODE" Style="{StaticResource FieldLabel}"/>
+          <Grid Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition/>
+              <ColumnDefinition Width="16"/>
+              <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+              <TextBlock Text="Du" FontSize="11" Foreground="{StaticResource AppTextSub}" Margin="0,0,0,4"/>
+              <DatePicker Style="{StaticResource MaterialDesignDatePicker}"
+                          SelectedDate="{Binding DateDebut}"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="Au" FontSize="11" Foreground="{StaticResource AppTextSub}" Margin="0,0,0,4"/>
+              <DatePicker Style="{StaticResource MaterialDesignDatePicker}"
+                          SelectedDate="{Binding DateFin}"/>
+            </StackPanel>
+          </Grid>
+
+          <Button Content="Exporter en Excel" Command="{Binding ExporterPlanificationCommand}"
+                  Style="{StaticResource BtnPrimary}"
+                  HorizontalAlignment="Stretch" Height="38"/>
         </StackPanel>
+      </Border>
 
-        <Button Content="EXPORTER CSV"
-                Style="{StaticResource MaterialDesignRaisedButton}"
-                Command="{Binding ExporterCsvCommand}"
-                HorizontalAlignment="Left"
-                Margin="0,0,0,16"/>
+      <!-- ── Export CSV brut ── -->
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+            <Border Background="{StaticResource AppHover}"
+                    CornerRadius="8" Width="36" Height="36">
+              <md:PackIcon Kind="FileDelimited" Width="18" Height="18"
+                           Foreground="{StaticResource AppTextSub}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+              <TextBlock Text="Export CSV" FontSize="14" FontWeight="SemiBold"
+                         Foreground="{StaticResource AppText}"/>
+              <TextBlock Text="Données brutes — lisible dans Excel / Google Sheets"
+                         FontSize="11" Foreground="{StaticResource AppTextSub}"/>
+            </StackPanel>
+          </StackPanel>
 
-        <TextBlock Text="{Binding Message}"
-                   TextWrapping="Wrap"
-                   FontSize="13">
-          <TextBlock.Style>
-            <Style TargetType="TextBlock">
-              <Setter Property="Foreground" Value="{DynamicResource MaterialDesignValidationErrorBrush}"/>
-              <Style.Triggers>
-                <DataTrigger Binding="{Binding Succes}" Value="True">
-                  <Setter Property="Foreground" Value="#388E3C"/>
-                </DataTrigger>
-                <DataTrigger Binding="{Binding Message}" Value="">
-                  <Setter Property="Visibility" Value="Collapsed"/>
-                </DataTrigger>
-              </Style.Triggers>
-            </Style>
-          </TextBlock.Style>
-        </TextBlock>
-      </StackPanel>
-    </md:Card>
-  </Grid>
+          <Border Height="1" Background="{StaticResource AppBorder}" Margin="0,0,0,16"/>
+
+          <TextBlock Text="PÉRIODE" Style="{StaticResource FieldLabel}"/>
+          <Grid Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition/>
+              <ColumnDefinition Width="16"/>
+              <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+              <TextBlock Text="Du" FontSize="11" Foreground="{StaticResource AppTextSub}" Margin="0,0,0,4"/>
+              <DatePicker Style="{StaticResource MaterialDesignDatePicker}"
+                          SelectedDate="{Binding DateDebut}"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="Au" FontSize="11" Foreground="{StaticResource AppTextSub}" Margin="0,0,0,4"/>
+              <DatePicker Style="{StaticResource MaterialDesignDatePicker}"
+                          SelectedDate="{Binding DateFin}"/>
+            </StackPanel>
+          </Grid>
+
+          <Button Content="Exporter en CSV" Command="{Binding ExporterCsvCommand}"
+                  Style="{StaticResource BtnSecondary}"
+                  HorizontalAlignment="Stretch" Height="38"/>
+        </StackPanel>
+      </Border>
+
+      <!-- ── Message retour ── -->
+      <Border Margin="0,16,0,0" CornerRadius="6" Padding="12,8">
+        <Border.Style>
+          <Style TargetType="Border">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Setter Property="Background" Value="{StaticResource AppDangerLight}"/>
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Succes}" Value="True">
+                <Setter Property="Background" Value="{StaticResource AppSuccessLight}"/>
+              </DataTrigger>
+              <DataTrigger Binding="{Binding Message}" Value="">
+                <Setter Property="Visibility" Value="Collapsed"/>
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Border.Style>
+        <DockPanel>
+          <md:PackIcon DockPanel.Dock="Left" Width="16" Height="16"
+                       VerticalAlignment="Center" Margin="0,0,8,0">
+            <md:PackIcon.Style>
+              <Style TargetType="md:PackIcon">
+                <Setter Property="Kind" Value="AlertCircle"/>
+                <Setter Property="Foreground" Value="{StaticResource AppDanger}"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Succes}" Value="True">
+                    <Setter Property="Kind" Value="CheckCircle"/>
+                    <Setter Property="Foreground" Value="{StaticResource AppSuccess}"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </md:PackIcon.Style>
+          </md:PackIcon>
+          <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="12">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource AppDanger}"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Succes}" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource AppSuccess}"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+        </DockPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
 </UserControl>

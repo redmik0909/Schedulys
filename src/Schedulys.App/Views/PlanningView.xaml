@@ -3,51 +3,69 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
 
-  <UserControl.Resources>
-    <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-  </UserControl.Resources>
-
-  <!-- 2 colonnes : sessions (gauche) + formulaires (droite) -->
   <Grid>
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="*"/>
+      <ColumnDefinition Width="1" />
       <ColumnDefinition Width="340"/>
     </Grid.ColumnDefinitions>
 
     <!-- ══════════════════════════════════════════════════════
-         GAUCHE — navigation date + liste sessions
+         GAUCHE — Date + Sessions
     ══════════════════════════════════════════════════════ -->
-    <DockPanel Grid.Column="0" Margin="24,20,12,20">
+    <DockPanel Grid.Column="0" Margin="28,20,16,20">
 
-      <!-- Barre navigation date -->
-      <DockPanel DockPanel.Dock="Top" Margin="0,0,0,14">
-        <TextBlock DockPanel.Dock="Left" Text="Horaire des examens"
-                   Style="{StaticResource MaterialDesignHeadline5TextBlock}"
-                   VerticalAlignment="Center"/>
-        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-          <Button Content="&#x276E;" Style="{StaticResource MaterialDesignFlatButton}"
-                  Command="{Binding JourPrecedentCommand}" Padding="6,2" MinWidth="32"/>
-          <DatePicker SelectedDate="{Binding FiltreDate}"
-                      Style="{StaticResource MaterialDesignDatePicker}"
-                      Width="145" Margin="4,0"/>
-          <Button Content="&#x276F;" Style="{StaticResource MaterialDesignFlatButton}"
-                  Command="{Binding JourSuivantCommand}" Padding="6,2" MinWidth="32"/>
-          <Button Content="Aujourd'hui" Style="{StaticResource MaterialDesignFlatButton}"
-                  Command="{Binding AujourdhUiCommand}" Margin="4,0,0,0" FontSize="12"/>
-        </StackPanel>
-      </DockPanel>
+      <!-- Navigation date -->
+      <Border DockPanel.Dock="Top"
+              Style="{StaticResource Card}" Padding="14,10"
+              Margin="0,0,0,16">
+        <DockPanel>
+          <!-- Date label -->
+          <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+            <TextBlock Text="{Binding FiltreDateLabel}"
+                       FontSize="15" FontWeight="SemiBold"
+                       Foreground="{StaticResource AppText}"/>
+          </StackPanel>
+          <!-- Controls -->
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                      VerticalAlignment="Center">
+            <Button Content="Aujourd'hui" Style="{StaticResource BtnSecondary}"
+                    Command="{Binding AujourdhUiCommand}"
+                    Height="30" Padding="12,0" FontSize="11" Margin="0,0,8,0"/>
+            <Button Content="❮" Style="{StaticResource BtnSecondary}"
+                    Command="{Binding JourPrecedentCommand}"
+                    Height="30" Width="30" Padding="0" FontSize="12" Margin="0,0,4,0"/>
+            <DatePicker SelectedDate="{Binding FiltreDate}"
+                        Style="{StaticResource MaterialDesignDatePicker}"
+                        Width="130" Margin="0,0,4,0"/>
+            <Button Content="❯" Style="{StaticResource BtnSecondary}"
+                    Command="{Binding JourSuivantCommand}"
+                    Height="30" Width="30" Padding="0" FontSize="12"/>
+          </StackPanel>
+          <StackPanel/>
+        </DockPanel>
+      </Border>
 
-      <Separator DockPanel.Dock="Top" Margin="0,0,0,14"/>
-
-      <!-- Sessions -->
+      <!-- Liste sessions -->
       <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel>
 
           <!-- Aucune session -->
-          <TextBlock Text="Aucune session d'examen pour cette date."
-                     Opacity="0.45" FontSize="13" HorizontalAlignment="Center" Margin="0,32">
-            <TextBlock.Style>
-              <Style TargetType="TextBlock">
+          <Border Padding="28,32"
+                  Background="{StaticResource AppSurface}"
+                  BorderBrush="{StaticResource AppBorder}"
+                  BorderThickness="1" CornerRadius="10">
+            <StackPanel HorizontalAlignment="Center">
+              <md:PackIcon Kind="CalendarRemove" Width="36" Height="36"
+                           Foreground="{StaticResource AppTextMuted}"
+                           HorizontalAlignment="Center"/>
+              <TextBlock Text="Aucune session d'examen pour cette date."
+                         Foreground="{StaticResource AppTextMuted}"
+                         FontSize="13" Margin="0,10,0,0"
+                         HorizontalAlignment="Center"/>
+            </StackPanel>
+            <Border.Style>
+              <Style TargetType="Border">
                 <Setter Property="Visibility" Value="Collapsed"/>
                 <Style.Triggers>
                   <DataTrigger Binding="{Binding Sessions.Count}" Value="0">
@@ -55,106 +73,124 @@
                   </DataTrigger>
                 </Style.Triggers>
               </Style>
-            </TextBlock.Style>
-          </TextBlock>
+            </Border.Style>
+          </Border>
 
           <ItemsControl ItemsSource="{Binding Sessions}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <md:Card Margin="0,0,0,16" Padding="0" UniformCornerRadius="8"
-                         md:ElevationAssist.Elevation="Dp2">
-                  <StackPanel>
+                <!-- Carte session avec bordure gauche colorée -->
+                <Border Style="{StaticResource Card}" Padding="0" Margin="0,0,0,12">
+                  <Grid>
+                    <!-- Accent left bar -->
+                    <Border Width="4" HorizontalAlignment="Left"
+                            Background="#4F46E5" CornerRadius="10,0,0,10"/>
 
-                    <!-- En-tête session -->
-                    <Border CornerRadius="8,8,0,0" Padding="14,10" Background="#3F51B5">
-                      <DockPanel>
-                        <Button DockPanel.Dock="Right"
-                                Style="{StaticResource MaterialDesignFlatButton}"
-                                Command="{Binding DataContext.SupprimerSessionCommand,
-                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                CommandParameter="{Binding}"
-                                Foreground="White" Opacity="0.7"
-                                Padding="4,0" Height="24" MinWidth="28">✕</Button>
-                        <Button DockPanel.Dock="Right"
-                                Content="SÉLECT."
-                                Style="{StaticResource MaterialDesignFlatButton}"
-                                Command="{Binding DataContext.SelectionnerSessionCommand,
-                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                CommandParameter="{Binding}"
-                                Foreground="White" FontSize="10"
-                                Padding="6,0" Height="24" MinWidth="0" Margin="0,0,4,0"/>
-                        <StackPanel VerticalAlignment="Center">
-                          <TextBlock Text="{Binding EnTete}" Foreground="White"
-                                     FontSize="13" FontWeight="SemiBold"/>
-                          <TextBlock Foreground="#AAFFFFFF" FontSize="11" Margin="0,2,0,0">
-                            <TextBlock.Text>
-                              <MultiBinding StringFormat="{}{0} groupe(s)  ·  {1} min total">
-                                <Binding Path="TotalGroupes"/>
-                                <Binding Path="TotalMinutes"/>
-                              </MultiBinding>
-                            </TextBlock.Text>
-                          </TextBlock>
-                        </StackPanel>
-                      </DockPanel>
-                    </Border>
+                    <StackPanel Margin="20,0,0,0">
 
-                    <!-- Groupes d'examen -->
-                    <ItemsControl ItemsSource="{Binding Groupes}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                          <Border BorderThickness="0,0,0,1"
-                                  BorderBrush="{DynamicResource MaterialDesignDivider}"
-                                  Padding="14,7">
-                            <DockPanel>
-                              <Button DockPanel.Dock="Right"
-                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                      Command="{Binding DataContext.SupprimerGroupeCommand,
-                                                RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                      CommandParameter="{Binding}"
-                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
-                                      Padding="4,0" Height="20" MinWidth="24">✕</Button>
-                              <StackPanel>
-                                <TextBlock Text="{Binding Ligne1}"
-                                           FontWeight="Medium" FontSize="12"/>
-                                <TextBlock Text="{Binding Ligne2}"
-                                           FontSize="11" Opacity="0.6" Margin="0,2,0,0"/>
-                              </StackPanel>
-                            </DockPanel>
-                          </Border>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                      <!-- En-tête session -->
+                      <Border Padding="0,12,12,12"
+                              BorderThickness="0,0,0,1"
+                              BorderBrush="{StaticResource AppBorder}">
+                        <DockPanel>
+                          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                                      VerticalAlignment="Center">
+                            <Button Content="Sélect."
+                                    Style="{StaticResource BtnSecondary}"
+                                    Height="26" Padding="10,0" FontSize="11"
+                                    Command="{Binding DataContext.SelectionnerSessionCommand,
+                                              RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}"
+                                    Margin="0,0,6,0"/>
+                            <Button Content="✕"
+                                    Style="{StaticResource BtnGhost}"
+                                    Height="26" Width="28" Padding="0"
+                                    Command="{Binding DataContext.SupprimerSessionCommand,
+                                              RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}"/>
+                          </StackPanel>
+                          <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{Binding EnTete}"
+                                       FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{StaticResource AppText}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                              <TextBlock Foreground="{StaticResource AppTextSub}" FontSize="11">
+                                <TextBlock.Text>
+                                  <MultiBinding StringFormat="{}{0} groupe(s)  ·  {1} min">
+                                    <Binding Path="TotalGroupes"/>
+                                    <Binding Path="TotalMinutes"/>
+                                  </MultiBinding>
+                                </TextBlock.Text>
+                              </TextBlock>
+                            </StackPanel>
+                          </StackPanel>
+                        </DockPanel>
+                      </Border>
 
-                    <!-- Rôles de surveillance -->
-                    <ItemsControl ItemsSource="{Binding Roles}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                          <Border Background="#F8F8F8"
-                                  BorderThickness="0,0,0,1"
-                                  BorderBrush="{DynamicResource MaterialDesignDivider}"
-                                  Padding="14,5">
-                            <DockPanel>
-                              <Button DockPanel.Dock="Right"
-                                      Style="{StaticResource MaterialDesignFlatButton}"
-                                      Command="{Binding DataContext.SupprimerRoleCommand,
-                                                RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                      CommandParameter="{Binding}"
-                                      Foreground="{DynamicResource MaterialDesignBodyLight}"
-                                      Padding="4,0" Height="20" MinWidth="24">✕</Button>
-                              <StackPanel>
-                                <TextBlock Text="{Binding Ligne1}"
-                                           FontWeight="Medium" FontSize="11" Foreground="#555"/>
-                                <TextBlock Text="{Binding Ligne2}"
-                                           FontSize="10" Opacity="0.55" Margin="0,1,0,0"/>
-                              </StackPanel>
-                            </DockPanel>
-                          </Border>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                      <!-- Groupes d'examen -->
+                      <ItemsControl ItemsSource="{Binding Groupes}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Border BorderThickness="0,0,0,1"
+                                    BorderBrush="{StaticResource AppBorder}"
+                                    Padding="0,8,12,8">
+                              <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="✕"
+                                        Style="{StaticResource BtnGhost}"
+                                        Height="22" Width="24" Padding="0" FontSize="11"
+                                        Command="{Binding DataContext.SupprimerGroupeCommand,
+                                                  RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}"
+                                        VerticalAlignment="Center"/>
+                                <StackPanel>
+                                  <TextBlock Text="{Binding Ligne1}"
+                                             FontWeight="Medium" FontSize="12"
+                                             Foreground="{StaticResource AppText}"/>
+                                  <TextBlock Text="{Binding Ligne2}"
+                                             FontSize="11"
+                                             Foreground="{StaticResource AppTextSub}"
+                                             Margin="0,2,0,0"/>
+                                </StackPanel>
+                              </DockPanel>
+                            </Border>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
 
-                  </StackPanel>
-                </md:Card>
+                      <!-- Rôles de surveillance -->
+                      <ItemsControl ItemsSource="{Binding Roles}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Border Background="{StaticResource AppHover}"
+                                    BorderThickness="0,0,0,1"
+                                    BorderBrush="{StaticResource AppBorder}"
+                                    Padding="0,6,12,6">
+                              <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="✕"
+                                        Style="{StaticResource BtnGhost}"
+                                        Height="22" Width="24" Padding="0" FontSize="11"
+                                        Command="{Binding DataContext.SupprimerRoleCommand,
+                                                  RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}"
+                                        VerticalAlignment="Center"/>
+                                <StackPanel>
+                                  <TextBlock Text="{Binding Ligne1}"
+                                             FontWeight="Medium" FontSize="11"
+                                             Foreground="{StaticResource AppTextSub}"/>
+                                  <TextBlock Text="{Binding Ligne2}"
+                                             FontSize="10"
+                                             Foreground="{StaticResource AppTextMuted}"
+                                             Margin="0,1,0,0"/>
+                                </StackPanel>
+                              </DockPanel>
+                            </Border>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+
+                    </StackPanel>
+                  </Grid>
+                </Border>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
@@ -163,170 +199,208 @@
       </ScrollViewer>
     </DockPanel>
 
+    <!-- Séparateur vertical -->
+    <Border Grid.Column="1" Background="{StaticResource AppBorder}"/>
+
     <!-- ══════════════════════════════════════════════════════
-         DROITE — Formulaires + minuterie
+         DROITE — Formulaires
     ══════════════════════════════════════════════════════ -->
-    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto"
-                  Margin="12,20,24,20">
-      <StackPanel>
+    <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto"
+                  Background="{StaticResource AppHover}">
+      <StackPanel Margin="16,20,16,20">
 
-        <!-- ── Créer session ── -->
-        <md:Card Padding="16" UniformCornerRadius="8" Margin="0,0,0,14"
-                 md:ElevationAssist.Elevation="Dp2">
+        <!-- Créer session -->
+        <Border Style="{StaticResource Card}" Margin="0,0,0,12">
           <StackPanel>
-            <TextBlock Text="Nouvelle session"
-                       Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
-                       Margin="0,0,0,10"/>
-            <DatePicker md:HintAssist.Hint="Date"
-                        Style="{StaticResource MaterialDesignDatePicker}"
+            <TextBlock Text="Nouvelle session" Style="{StaticResource CardTitle}"/>
+
+            <TextBlock Text="DATE" Style="{StaticResource FieldLabel}"/>
+            <DatePicker Style="{StaticResource MaterialDesignDatePicker}"
                         SelectedDate="{Binding DateNouvelleSession}"
-                        Margin="0,0,0,8"/>
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-              <ComboBox md:HintAssist.Hint="Période"
-                        Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                        ItemsSource="{Binding Periodes}"
-                        SelectedItem="{Binding PeriodeNouvelleSession}"
-                        Width="90" Margin="0,0,8,0"/>
-              <TextBox md:HintAssist.Hint="Heure (HH:mm)"
-                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                       Text="{Binding HeureDebutNouvelleSession, UpdateSourceTrigger=PropertyChanged}"
-                       Width="110"/>
-            </StackPanel>
-            <Button Content="CRÉER LA SESSION"
-                    Style="{StaticResource MaterialDesignRaisedButton}"
-                    Command="{Binding CreerSessionCommand}"
-                    HorizontalAlignment="Left"/>
+                        Margin="0,0,0,10"/>
+
+            <TextBlock Text="JOUR DU CYCLE" Style="{StaticResource FieldLabel}"/>
+            <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                      ItemsSource="{Binding JoursDuCycle}"
+                      SelectedItem="{Binding JourCycleSession}"
+                      DisplayMemberPath="Libelle"
+                      Margin="0,0,0,10"/>
+
+            <Grid Margin="0,0,0,14">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="*"/>
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0">
+                <TextBlock Text="PÉRIODE" Style="{StaticResource FieldLabel}"/>
+                <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                          ItemsSource="{Binding Periodes}"
+                          SelectedItem="{Binding PeriodeNouvelleSession}"/>
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Text="HEURE (HH:mm)" Style="{StaticResource FieldLabel}"/>
+                <TextBox md:HintAssist.Hint="08:30"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Text="{Binding HeureDebutNouvelleSession, UpdateSourceTrigger=PropertyChanged}"/>
+              </StackPanel>
+            </Grid>
+
+            <Button Content="Créer la session" Command="{Binding CreerSessionCommand}"
+                    Style="{StaticResource BtnPrimary}"
+                    HorizontalAlignment="Stretch" Height="36"/>
           </StackPanel>
-        </md:Card>
+        </Border>
 
-        <!-- ── Ajouter groupe (visible si session sélectionnée) ── -->
-        <md:Card Padding="16" UniformCornerRadius="8" Margin="0,0,0,14"
-                 md:ElevationAssist.Elevation="Dp2"
-                 Visibility="{Binding HasSessionSelectionnee, Converter={StaticResource BoolToVis}}">
+        <!-- Ajouter groupe -->
+        <Border Style="{StaticResource Card}" Margin="0,0,0,12"
+                Visibility="{Binding HasSessionSelectionnee, Converter={StaticResource BoolToVis}}">
           <StackPanel>
-            <TextBlock Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
-                       Margin="0,0,0,2">
-              <Run Text="Ajouter un groupe"/>
-            </TextBlock>
+            <TextBlock Text="Ajouter un groupe" Style="{StaticResource CardTitle}"/>
             <TextBlock Text="{Binding SessionSelectionnee.EnTete}"
-                       FontSize="11" Opacity="0.55" Margin="0,0,0,10"/>
+                       Foreground="{StaticResource AppTextSub}" FontSize="11"
+                       Margin="0,-8,0,12" TextTrimming="CharacterEllipsis"/>
 
-            <ComboBox md:HintAssist.Hint="Épreuve"
-                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                      ItemsSource="{Binding EpreuvesDisponibles}"
-                      SelectedItem="{Binding EpreuveSelectionnee}"
-                      DisplayMemberPath="Nom"
-                      Margin="0,0,0,8"/>
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-              <TextBox md:HintAssist.Hint="Code groupe"
-                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                       Text="{Binding CodeGroupeInput, UpdateSourceTrigger=PropertyChanged}"
-                       Width="150" Margin="0,0,8,0"/>
-              <TextBox md:HintAssist.Hint="# élèves"
-                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                       Text="{Binding NbElevesInput, UpdateSourceTrigger=PropertyChanged}"
-                       Width="80"/>
-            </StackPanel>
-            <ComboBox md:HintAssist.Hint="Enseignant responsable"
-                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                      ItemsSource="{Binding ProfsDisponibles}"
-                      SelectedItem="{Binding EnseignantSelectionne}"
-                      DisplayMemberPath="Nom"
-                      Margin="0,0,0,8"/>
-            <ComboBox md:HintAssist.Hint="Surveillant (optionnel)"
-                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+            <TextBlock Text="GROUPE / COURS" Style="{StaticResource FieldLabel}"/>
+            <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                      ItemsSource="{Binding ClassesDisponibles}"
+                      SelectedItem="{Binding ClasseSelectionnee}"
+                      DisplayMemberPath="Label" Margin="0,0,0,8"/>
+
+            <!-- Info auto-remplie depuis le groupe sélectionné -->
+            <Border Background="{StaticResource AppHover}" CornerRadius="6"
+                    Padding="10,7" Margin="0,0,0,8">
+              <Border.Style>
+                <Style TargetType="Border">
+                  <Setter Property="Visibility" Value="Collapsed"/>
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding ClasseSelectionnee}" Value="{x:Null}">
+                      <Setter Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Border.Style>
+              <StackPanel>
+                <TextBlock FontSize="11" Foreground="{StaticResource AppTextSub}">
+                  <Run Text="Enseignant : "/>
+                  <Run Text="{Binding ClasseSelectionnee.NomProf}" FontWeight="Medium"/>
+                </TextBlock>
+                <TextBlock FontSize="11" Foreground="{StaticResource AppTextSub}" Margin="0,2,0,0">
+                  <Run Text="Effectif : "/>
+                  <Run Text="{Binding ClasseSelectionnee.Effectif}" FontWeight="Medium"/>
+                  <Run Text=" élèves"/>
+                </TextBlock>
+              </StackPanel>
+            </Border>
+
+            <TextBlock Text="NOMBRE D'ÉLÈVES" Style="{StaticResource FieldLabel}"/>
+            <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                     Text="{Binding NbElevesInput, UpdateSourceTrigger=PropertyChanged}"
+                     Margin="0,0,0,8"/>
+
+            <Grid Margin="0,0,0,8">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="*"/>
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0">
+                <TextBlock Text="HEURE FIN (HH:mm)" Style="{StaticResource FieldLabel}"/>
+                <TextBox md:HintAssist.Hint="11:30"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Text="{Binding HeureFinInput, UpdateSourceTrigger=PropertyChanged}"/>
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Text="1ER DÉPART (HH:mm)" Style="{StaticResource FieldLabel}"/>
+                <TextBox md:HintAssist.Hint="10:30"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Text="{Binding PremierDepartInput, UpdateSourceTrigger=PropertyChanged}"/>
+              </StackPanel>
+            </Grid>
+
+            <TextBlock Text="SURVEILLANT (OPTIONNEL)" Style="{StaticResource FieldLabel}"/>
+            <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
                       ItemsSource="{Binding ProfsDisponibles}"
                       SelectedItem="{Binding SurveillantSelectionne}"
-                      DisplayMemberPath="Nom"
-                      Margin="0,0,0,8"/>
-            <ComboBox md:HintAssist.Hint="Salle (optionnel)"
-                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                      DisplayMemberPath="Nom" Margin="0,0,0,8"/>
+
+            <TextBlock Text="SALLE (OPTIONNELLE)" Style="{StaticResource FieldLabel}"/>
+            <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
                       ItemsSource="{Binding SallesDisponibles}"
                       SelectedItem="{Binding SalleSelectionnee}"
-                      DisplayMemberPath="Nom"
-                      Margin="0,0,0,8"/>
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-              <ComboBox md:HintAssist.Hint="Type"
-                        Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                        ItemsSource="{Binding TypesGroupe}"
-                        SelectedItem="{Binding TypeGroupe}"
-                        Width="120" Margin="0,0,8,0"/>
-              <CheckBox Content="+1/3 temps"
-                        Style="{StaticResource MaterialDesignCheckBox}"
-                        IsChecked="{Binding TiersTemps}"
-                        VerticalAlignment="Center"/>
-            </StackPanel>
-            <Button Content="AJOUTER LE GROUPE"
-                    Style="{StaticResource MaterialDesignRaisedButton}"
-                    Command="{Binding AjouterGroupeCommand}"
-                    HorizontalAlignment="Left"/>
-          </StackPanel>
-        </md:Card>
+                      DisplayMemberPath="Nom" Margin="0,0,0,14"/>
 
-        <!-- ── Ajouter rôle de surveillance ── -->
-        <md:Card Padding="16" UniformCornerRadius="8" Margin="0,0,0,14"
-                 md:ElevationAssist.Elevation="Dp2"
-                 Visibility="{Binding HasSessionSelectionnee, Converter={StaticResource BoolToVis}}">
+            <Button Content="Ajouter le groupe" Command="{Binding AjouterGroupeCommand}"
+                    Style="{StaticResource BtnPrimary}"
+                    HorizontalAlignment="Stretch" Height="36"/>
+          </StackPanel>
+        </Border>
+
+        <!-- Ajouter rôle -->
+        <Border Style="{StaticResource Card}" Margin="0,0,0,12"
+                Visibility="{Binding HasSessionSelectionnee, Converter={StaticResource BoolToVis}}">
           <StackPanel>
-            <TextBlock Text="Ajouter un rôle de surveillance"
-                       Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
-                       Margin="0,0,0,10"/>
-            <ComboBox md:HintAssist.Hint="Type de rôle"
-                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+            <TextBlock Text="Rôle de surveillance" Style="{StaticResource CardTitle}"/>
+
+            <TextBlock Text="TYPE DE RÔLE" Style="{StaticResource FieldLabel}"/>
+            <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
                       ItemsSource="{Binding TypesRole}"
-                      SelectedItem="{Binding TypeRoleInput}"
-                      Margin="0,0,0,8"/>
-            <ComboBox md:HintAssist.Hint="Surveillant"
-                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                      SelectedItem="{Binding TypeRoleInput}" Margin="0,0,0,8"/>
+
+            <TextBlock Text="SURVEILLANT" Style="{StaticResource FieldLabel}"/>
+            <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
                       ItemsSource="{Binding ProfsDisponibles}"
                       SelectedItem="{Binding SurveillantRoleSelectionne}"
-                      DisplayMemberPath="Nom"
-                      Margin="0,0,0,8"/>
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-              <TextBox md:HintAssist.Hint="Local (optionnel)"
-                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                       Text="{Binding LocalRoleInput, UpdateSourceTrigger=PropertyChanged}"
-                       Width="110" Margin="0,0,8,0"/>
-              <TextBox md:HintAssist.Hint="Durée (min)"
-                       Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                       Text="{Binding DureeRoleInput, UpdateSourceTrigger=PropertyChanged}"
-                       Width="80"/>
-            </StackPanel>
-            <Button Content="AJOUTER LE RÔLE"
-                    Style="{StaticResource MaterialDesignOutlinedButton}"
-                    Command="{Binding AjouterRoleCommand}"
-                    HorizontalAlignment="Left"/>
-          </StackPanel>
-        </md:Card>
+                      DisplayMemberPath="Nom" Margin="0,0,0,8"/>
 
-        <!-- ── Erreur ── -->
-        <TextBlock Text="{Binding MessageErreur}"
-                   Foreground="{DynamicResource MaterialDesignValidationErrorBrush}"
-                   FontSize="12" Margin="0,0,0,12" TextWrapping="Wrap">
-          <TextBlock.Style>
-            <Style TargetType="TextBlock">
-              <Setter Property="Visibility" Value="Visible"/>
+            <Grid Margin="0,0,0,14">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="80"/>
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0">
+                <TextBlock Text="LOCAL (OPTIONNEL)" Style="{StaticResource FieldLabel}"/>
+                <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Text="{Binding LocalRoleInput, UpdateSourceTrigger=PropertyChanged}"/>
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Text="DURÉE (MIN)" Style="{StaticResource FieldLabel}"/>
+                <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                         Text="{Binding DureeRoleInput, UpdateSourceTrigger=PropertyChanged}"/>
+              </StackPanel>
+            </Grid>
+
+            <Button Content="Ajouter le rôle" Command="{Binding AjouterRoleCommand}"
+                    Style="{StaticResource BtnSecondary}"
+                    HorizontalAlignment="Stretch" Height="36"/>
+          </StackPanel>
+        </Border>
+
+        <!-- Erreur -->
+        <Border Background="{StaticResource AppDangerLight}" CornerRadius="6"
+                Padding="12,8" Margin="0,0,0,12">
+          <TextBlock Text="{Binding MessageErreur}" Foreground="{StaticResource AppDanger}"
+                     FontSize="12" TextWrapping="Wrap"/>
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Visibility" Value="Collapsed"/>
               <Style.Triggers>
                 <DataTrigger Binding="{Binding MessageErreur}" Value="">
                   <Setter Property="Visibility" Value="Collapsed"/>
                 </DataTrigger>
               </Style.Triggers>
             </Style>
-          </TextBlock.Style>
-        </TextBlock>
+          </Border.Style>
+        </Border>
 
-        <!-- ── Minutes de surveillance par enseignant ── -->
-        <md:Card Padding="16" UniformCornerRadius="8"
-                 md:ElevationAssist.Elevation="Dp2">
+        <!-- Minutes de surveillance -->
+        <Border Style="{StaticResource Card}">
           <StackPanel>
-            <TextBlock Text="Minutes de surveillance — ce jour"
-                       Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
-                       Margin="0,0,0,4"/>
-            <TextBlock Text="{Binding FiltreDateLabel}"
-                       FontSize="11" Opacity="0.55" Margin="0,0,0,12"/>
+            <TextBlock Text="Surveillance — ce jour" Style="{StaticResource CardTitle}"/>
 
-            <TextBlock Text="Aucun enseignant enregistré."
-                       Opacity="0.45" FontSize="12">
+            <TextBlock Text="Aucun enseignant." Foreground="{StaticResource AppTextMuted}"
+                       FontSize="12">
               <TextBlock.Style>
                 <Style TargetType="TextBlock">
                   <Setter Property="Visibility" Value="Collapsed"/>
@@ -342,41 +416,76 @@
             <ItemsControl ItemsSource="{Binding MinutesParProf}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                  <StackPanel Margin="0,0,0,7">
-                    <TextBlock Text="{Binding Label}" FontSize="11">
-                      <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                          <Setter Property="Foreground"
-                                  Value="{DynamicResource MaterialDesignBody}"/>
-                          <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsOverQuota}" Value="True">
-                              <Setter Property="Foreground" Value="#EF5350"/>
-                            </DataTrigger>
-                          </Style.Triggers>
-                        </Style>
-                      </TextBlock.Style>
-                    </TextBlock>
+                  <StackPanel Margin="0,0,0,10">
+                    <DockPanel Margin="0,0,0,3">
+                      <TextBlock DockPanel.Dock="Right"
+                                 FontSize="10" Foreground="{StaticResource AppTextSub}">
+                        <TextBlock.Text>
+                          <MultiBinding StringFormat="{}{0} / {1} min">
+                            <Binding Path="MinutesAssignees"/>
+                            <Binding Path="MinutesMax"/>
+                          </MultiBinding>
+                        </TextBlock.Text>
+                        <TextBlock.Style>
+                          <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                              <DataTrigger Binding="{Binding MinutesMax}" Value="0">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                              </DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </TextBlock.Style>
+                      </TextBlock>
+                      <TextBlock Text="{Binding Prof.Nom}" FontSize="12"
+                                 FontWeight="Medium">
+                        <TextBlock.Style>
+                          <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{StaticResource AppText}"/>
+                            <Style.Triggers>
+                              <DataTrigger Binding="{Binding IsOverQuota}" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource AppDanger}"/>
+                              </DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </TextBlock.Style>
+                      </TextBlock>
+                    </DockPanel>
                     <ProgressBar Value="{Binding Pourcentage, Mode=OneWay}" Maximum="100"
                                  Height="4" Margin="0,2,0,0">
                       <ProgressBar.Style>
                         <Style TargetType="ProgressBar"
                                BasedOn="{StaticResource MaterialDesignLinearProgressBar}">
-                          <Setter Property="Foreground" Value="#4CAF50"/>
+                          <Setter Property="Foreground" Value="#4F46E5"/>
                           <Style.Triggers>
                             <DataTrigger Binding="{Binding IsOverQuota}" Value="True">
-                              <Setter Property="Foreground" Value="#EF5350"/>
+                              <Setter Property="Foreground" Value="{StaticResource AppDanger}"/>
                             </DataTrigger>
                           </Style.Triggers>
                         </Style>
                       </ProgressBar.Style>
                     </ProgressBar>
+                    <TextBlock Text="{Binding MinutesAssignees, StringFormat='{}{0} min assignées'}"
+                               FontSize="10" Foreground="{StaticResource AppTextMuted}"
+                               Margin="0,2,0,0">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                          <Setter Property="Visibility" Value="Collapsed"/>
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding MinutesMax}" Value="0">
+                              <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
                   </StackPanel>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
 
           </StackPanel>
-        </md:Card>
+        </Border>
 
       </StackPanel>
     </ScrollViewer>

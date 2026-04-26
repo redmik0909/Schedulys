@@ -124,6 +124,47 @@ CREATE INDEX IF NOT EXISTS IDX_RolesSurv_Surv         ON RolesSurveillance(Surve
 CREATE INDEX IF NOT EXISTS IDX_Quotas_Prof            ON QuotasMinutes(ProfId);
 ";
     await cn.ExecuteAsync(newTables);
+
+    // Migration Niveau sur Classes (legacy)
+    await AddColumnIfMissing(cn, "Classes", "Niveau", "INTEGER NOT NULL DEFAULT 0");
+
+    // Migration catalogue groupes
+    await AddColumnIfMissing(cn, "Classes", "Code",        "TEXT NOT NULL DEFAULT ''");
+    await AddColumnIfMissing(cn, "Classes", "Description", "TEXT NOT NULL DEFAULT ''");
+    await AddColumnIfMissing(cn, "Classes", "ProfId",      "INTEGER NOT NULL DEFAULT 0");
+
+    // Migration GroupesExamen
+    await AddColumnIfMissing(cn, "GroupesExamen", "ClasseId",      "INTEGER");
+    await AddColumnIfMissing(cn, "GroupesExamen", "HeureFin",      "TEXT NOT NULL DEFAULT ''");
+    await AddColumnIfMissing(cn, "GroupesExamen", "PremierDepart", "TEXT NOT NULL DEFAULT ''");
+
+    // Migration JourCycle : Sessions
+    await AddColumnIfMissing(cn, "Sessions", "JourCycle", "INTEGER NOT NULL DEFAULT 0");
+
+    // Migration JourCycle : QuotasMinutes — recrée la table avec le nouveau UNIQUE(ProfId, JourCycle, AnneeScolaire)
+    var hasJourCycleQuotas = await cn.ExecuteScalarAsync<long>(
+        "SELECT COUNT(*) FROM pragma_table_info('QuotasMinutes') WHERE name='JourCycle';");
+    if (hasJourCycleQuotas == 0)
+    {
+        using var tx = cn.BeginTransaction();
+        await cn.ExecuteAsync("ALTER TABLE QuotasMinutes RENAME TO QuotasMinutes_old", transaction: tx);
+        await cn.ExecuteAsync(@"
+CREATE TABLE QuotasMinutes (
+  Id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  ProfId        INTEGER NOT NULL,
+  JourCycle     INTEGER NOT NULL DEFAULT 0,
+  MinutesMax    INTEGER NOT NULL,
+  AnneeScolaire TEXT    NOT NULL,
+  UNIQUE(ProfId, JourCycle, AnneeScolaire)
+);", transaction: tx);
+        await cn.ExecuteAsync(@"
+INSERT INTO QuotasMinutes(Id, ProfId, JourCycle, MinutesMax, AnneeScolaire)
+SELECT Id, ProfId, 0, MinutesMax, AnneeScolaire FROM QuotasMinutes_old;", transaction: tx);
+        await cn.ExecuteAsync("DROP TABLE QuotasMinutes_old", transaction: tx);
+        await cn.ExecuteAsync(
+            "CREATE INDEX IF NOT EXISTS IDX_Quotas_Prof ON QuotasMinutes(ProfId)", transaction: tx);
+        tx.Commit();
+    }
   }
 
     private static async Task AddColumnIfMissing(SqliteConnection cn, string table, string column, string sqlType)

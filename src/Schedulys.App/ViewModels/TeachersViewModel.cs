@@ -10,20 +10,30 @@ using Schedulys.Data;
 
 namespace Schedulys.App.ViewModels;
 
-public sealed class ProfDisplay(Prof prof, int minutesParJour)
+public sealed class ProfDisplay(Prof prof, int minutesJour0)
 {
     public Prof   Prof           { get; } = prof;
     public string Nom            => Prof.Nom;
     public string Role           => Prof.Role;
-    public int    MinutesParJour { get; set; } = minutesParJour;
+    public int    MinutesParJour { get; set; } = minutesJour0;
     public string MinutesLabel   => MinutesParJour > 0 ? $"{MinutesParJour} min/j" : "—";
+}
+
+public sealed class QuotaJourDisplay
+{
+    public int    JourCycle     { get; init; }
+    public int    ProfId        { get; init; }
+    public string AnneeScolaire { get; init; } = "";
+    public string Label         => JourCycle == 0 ? "Moy." : $"Jour {JourCycle}";
+    public string MinutesInput  { get; set; } = "";
 }
 
 public sealed partial class TeachersViewModel : ViewModelBase
 {
     private readonly DataContext _db;
 
-    public ObservableCollection<ProfDisplay> Profs { get; } = new();
+    public ObservableCollection<ProfDisplay>      Profs         { get; } = new();
+    public ObservableCollection<QuotaJourDisplay> QuotasParJour { get; } = new();
 
     public IReadOnlyList<string> Roles { get; } = new[]
     {
@@ -33,23 +43,21 @@ public sealed partial class TeachersViewModel : ViewModelBase
         "Direction"
     };
 
-    [ObservableProperty] private string      _nomInput         = "";
-    [ObservableProperty] private string      _selectedRole     = "Enseignant";
-    [ObservableProperty] private string      _minutesInput     = "";  // minutes/jour cibles
+    [ObservableProperty] private string _nomInput     = "";
+    [ObservableProperty] private string _selectedRole = "Enseignant";
+    [ObservableProperty] private string _minutesInput = "";
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(DeleteSelectedCommand))]
-    [NotifyCanExecuteChangedFor(nameof(SaveMinutesCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SaveAllQuotasCommand))]
+    [NotifyPropertyChangedFor(nameof(HasSelection))]
     private ProfDisplay? _selected;
 
-    // Champ édition minutes pour la ligne sélectionnée
-    [ObservableProperty] private string _minutesEditInput = "";
+    public bool HasSelection => Selected is not null;
 
     partial void OnSelectedChanged(ProfDisplay? value)
     {
-        MinutesEditInput = value?.MinutesParJour > 0
-            ? value.MinutesParJour.ToString()
-            : "";
+        _ = LoadQuotasParJourAsync(value);
     }
 
     public TeachersViewModel(DataContext db)
@@ -63,11 +71,35 @@ public sealed partial class TeachersViewModel : ViewModelBase
         var profs  = await _db.Profs.ListAsync();
         var quotas = await _db.Quotas.ListAsync();
 
+        var savedId = Selected?.Prof.Id;
         Profs.Clear();
         foreach (var p in profs)
         {
-            var q = quotas.FirstOrDefault(x => x.ProfId == p.Id);
+            var q = quotas.FirstOrDefault(x => x.ProfId == p.Id && x.JourCycle == 0);
             Profs.Add(new ProfDisplay(p, q?.MinutesMax ?? 0));
+        }
+
+        if (savedId.HasValue)
+            Selected = Profs.FirstOrDefault(p => p.Prof.Id == savedId);
+    }
+
+    private async Task LoadQuotasParJourAsync(ProfDisplay? prof)
+    {
+        QuotasParJour.Clear();
+        if (prof is null) return;
+
+        var quotas = await _db.Quotas.GetAllByProfAsync(prof.Prof.Id, AppConstants.AnneeScolaire);
+
+        for (int j = 0; j <= 9; j++)
+        {
+            var q = quotas.FirstOrDefault(x => x.JourCycle == j);
+            QuotasParJour.Add(new QuotaJourDisplay
+            {
+                JourCycle     = j,
+                ProfId        = prof.Prof.Id,
+                AnneeScolaire = AppConstants.AnneeScolaire,
+                MinutesInput  = q?.MinutesMax > 0 ? q.MinutesMax.ToString() : ""
+            });
         }
     }
 
@@ -87,29 +119,32 @@ public sealed partial class TeachersViewModel : ViewModelBase
             await _db.Quotas.UpsertAsync(new QuotaMinutes
             {
                 ProfId        = profId,
+                JourCycle     = 0,
                 MinutesMax    = min,
-                AnneeScolaire = "2025-2026"
+                AnneeScolaire = AppConstants.AnneeScolaire
             });
         }
 
-        NomInput      = "";
-        MinutesInput  = "";
+        NomInput     = "";
+        MinutesInput = "";
         await LoadAsync();
     }
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
-    private async Task SaveMinutesAsync()
+    private async Task SaveAllQuotasAsync()
     {
         if (Selected is null) return;
-        if (!int.TryParse(MinutesEditInput, out var min) || min <= 0) return;
-
-        await _db.Quotas.UpsertAsync(new QuotaMinutes
+        foreach (var qd in QuotasParJour)
         {
-            ProfId        = Selected.Prof.Id,
-            MinutesMax    = min,
-            AnneeScolaire = "2025-2026"
-        });
-
+            if (!int.TryParse(qd.MinutesInput, out var min) || min < 0) continue;
+            await _db.Quotas.UpsertAsync(new QuotaMinutes
+            {
+                ProfId        = qd.ProfId,
+                JourCycle     = qd.JourCycle,
+                MinutesMax    = min,
+                AnneeScolaire = qd.AnneeScolaire
+            });
+        }
         await LoadAsync();
     }
 
@@ -132,6 +167,4 @@ public sealed partial class TeachersViewModel : ViewModelBase
     }
 
     [ObservableProperty] private string _erreur = "";
-
-    public bool HasSelection() => Selected is not null;
 }

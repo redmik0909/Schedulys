@@ -13,4 +13,7 @@ public sealed class GroupeExamen
     public bool    TiersTemps    { get; set; }
     public int     DureeMinutes  { get; set; }               // durée effective (tiers-temps inclus)
     public string  Type          { get; set; } = "Standard"; // "Standard", "SAI", "EHDAA"
+    public int?    ClasseId      { get; set; }               // référence au catalogue Classes
+    public string  HeureFin      { get; set; } = "";         // ex: "11:30"
+    public string  PremierDepart { get; set; } = "";         // ex: "10:30"
 }

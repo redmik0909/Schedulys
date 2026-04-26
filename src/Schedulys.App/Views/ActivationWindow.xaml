@@ -1,0 +1,92 @@
+<Window x:Class="Schedulys.App.Views.ActivationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Activation de Schedulys"
+        Width="500" Height="340"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="SingleBorderWindow"
+        Background="{StaticResource AppBg}">
+
+  <Border Margin="36,28">
+    <StackPanel>
+
+      <!-- Header -->
+      <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
+        <Border Background="{StaticResource AppAccentLight}" CornerRadius="10"
+                Width="42" Height="42">
+          <md:PackIcon Kind="ShieldKey" Width="20" Height="20"
+                       Foreground="{StaticResource AppAccent}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
+        <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+          <TextBlock Text="Activation de Schedulys" FontSize="16" FontWeight="SemiBold"
+                     Foreground="{StaticResource AppText}"/>
+          <TextBlock Text="Entrez votre clé de licence pour continuer."
+                     FontSize="12" Foreground="{StaticResource AppTextSub}" Margin="0,2,0,0"/>
+        </StackPanel>
+      </StackPanel>
+
+      <!-- Clé -->
+      <TextBlock Text="CLÉ DE LICENCE" Style="{StaticResource FieldLabel}" Margin="0,0,0,6"/>
+      <TextBox md:HintAssist.Hint="SCHEDULYS-XXXX-XXXX-XXXX-XXXX"
+               Style="{StaticResource MaterialDesignOutlinedTextBox}"
+               Text="{Binding LicenseKey, UpdateSourceTrigger=PropertyChanged}"
+               FontFamily="Consolas" FontSize="13"
+               Margin="0,0,0,16"/>
+
+      <!-- Bouton + status -->
+      <DockPanel Margin="0,0,0,12">
+        <Button DockPanel.Dock="Left" Content="Activer la licence"
+                Style="{StaticResource BtnPrimary}"
+                Command="{Binding ActivateCommand}"
+                Padding="20,0" Height="38"/>
+        <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" FontSize="12">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock">
+              <Setter Property="Text"       Value="{Binding Status}"/>
+              <Setter Property="Foreground" Value="{StaticResource AppAccent}"/>
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding Status}" Value="">
+                  <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
+        </TextBlock>
+      </DockPanel>
+
+      <!-- Erreur -->
+      <Border Background="{StaticResource AppDangerLight}" CornerRadius="6"
+              Padding="10,7" Margin="0,0,0,16">
+        <TextBlock Text="{Binding Erreur}" Foreground="{StaticResource AppDanger}"
+                   FontSize="12" TextWrapping="Wrap"/>
+        <Border.Style>
+          <Style TargetType="Border">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Erreur}" Value="">
+                <Setter Property="Visibility" Value="Collapsed"/>
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Border.Style>
+      </Border>
+
+      <!-- Footer -->
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+        <TextBlock FontSize="11" Foreground="{StaticResource AppTextMuted}" VerticalAlignment="Center">
+          Pas encore de clé ?
+        </TextBlock>
+        <Button Content="Demander une licence" Margin="6,0,0,0"
+                Style="{StaticResource MaterialDesignFlatButton}"
+                Padding="4,0" Height="22" FontSize="11"
+                Foreground="{StaticResource AppAccent}"
+                Click="DemanderLicence_Click"/>
+      </StackPanel>
+
+    </StackPanel>
+  </Border>
+</Window>

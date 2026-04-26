@@ -7,4 +7,5 @@ public sealed class Session
     public string Periode       { get; set; } = "AM"; // "AM" ou "PM"
     public string HeureDebut    { get; set; } = "";   // ex: "08:30"
     public string AnneeScolaire { get; set; } = "2025-2026";
+    public int    JourCycle     { get; set; }         // 0 = non défini, 1–9
 }

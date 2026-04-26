@@ -17,20 +17,25 @@ namespace Schedulys.App.ViewModels;
 // ─────────────────────────────────────────────────────────────────────────────
 
 public sealed class GroupeExamenDisplay(
-    GroupeExamen groupe, string epreuve, string enseignant, string surveillant, string salle)
+    GroupeExamen groupe, string description, string enseignant, string surveillant, string salle, string heureDebut)
 {
-    public GroupeExamen Groupe       { get; } = groupe;
-    public string       Epreuve      { get; } = epreuve;
-    public string       Enseignant   { get; } = enseignant;
-    public string       Surveillant  { get; } = surveillant;
-    public string       Salle        { get; } = salle;
+    public GroupeExamen Groupe      { get; } = groupe;
+    public string       Description { get; } = description;
+    public string       Enseignant  { get; } = enseignant;
+    public string       Surveillant { get; } = surveillant;
+    public string       Salle       { get; } = salle;
+    public string       HeureDebut  { get; } = heureDebut;
 
-    public string TypeTag     => Groupe.Type == "Standard" ? "" : $"[{Groupe.Type}]";
-    public string TiersTag    => Groupe.TiersTemps ? "+1/3" : "";
-    public string ElèvesLabel => $"{Groupe.NbEleves} élèves";
-    public string DureeLabel  => $"{Groupe.DureeMinutes} min";
-    public string Ligne1      => $"{Epreuve}  {Groupe.CodeGroupe}  {TypeTag}{TiersTag}".Trim();
-    public string Ligne2      => $"{Salle}  ·  {Surveillant}  ·  {ElèvesLabel}  ·  {DureeLabel}";
+    public string ElèvesLabel  => $"{Groupe.NbEleves} élèves";
+    public string PlageHoraire => string.IsNullOrWhiteSpace(Groupe.HeureFin)
+        ? HeureDebut
+        : $"{HeureDebut}–{Groupe.HeureFin}";
+    public string DepartLabel  => string.IsNullOrWhiteSpace(Groupe.PremierDepart)
+        ? ""
+        : $"  ·  1er départ {Groupe.PremierDepart}";
+
+    public string Ligne1 => $"{Description}  {Groupe.CodeGroupe}".Trim();
+    public string Ligne2 => $"{Salle}  ·  {Surveillant}  ·  {ElèvesLabel}  ·  {PlageHoraire}{DepartLabel}".Trim(' ', '·');
 }
 
 public sealed class RoleSurveillanceDisplay(RoleSurveillance role, string surveillant)
@@ -61,7 +66,9 @@ public sealed class SessionDisplay(Session session)
     }
     public string PeriodeLabel  => Session.Periode == "AM" ? "Matin" : "Après-midi";
     public string HeureLabel    => Session.HeureDebut;
-    public string EnTete        => $"{DateLabel}  —  {PeriodeLabel}  ({HeureLabel})";
+    public string EnTete        => Session.JourCycle > 0
+        ? $"{DateLabel}  —  {PeriodeLabel}  ({HeureLabel})  —  Jour {Session.JourCycle}"
+        : $"{DateLabel}  —  {PeriodeLabel}  ({HeureLabel})";
     public int    TotalGroupes  => Groupes.Count;
     public int    TotalMinutes  => Groupes.Sum(g => g.Groupe.DureeMinutes)
                                  + Roles.Sum(r => r.Role.DureeMinutes);
@@ -73,7 +80,7 @@ public sealed partial class ProfMinutesDisplay : ObservableObject
     [ObservableProperty] private int  _minutesAssignees;
     [ObservableProperty] private int  _minutesMax;
 
-    public int    Pourcentage    => MinutesMax > 0 ? Math.Min(100, MinutesAssignees * 100 / MinutesMax) : 0;
+    public int    Pourcentage    => MinutesMax > 0 ? Math.Min(100, (int)(((long)MinutesAssignees * 100) / MinutesMax)) : 0;
     public bool   IsOverQuota    => MinutesMax > 0 && MinutesAssignees > MinutesMax;
     public string Label          => $"{Prof.Nom}  {MinutesAssignees}/{(MinutesMax > 0 ? MinutesMax.ToString() : "—")} min";
     public string BarColor       => IsOverQuota ? "#EF5350" : (Pourcentage >= 80 ? "#FF9800" : "#4CAF50");
@@ -101,7 +108,6 @@ public sealed partial class ProfMinutesDisplay : ObservableObject
 public sealed partial class PlanningViewModel : ViewModelBase
 {
     private readonly DataContext     _db;
-    private readonly PlanningRules   _rules    = new();
     private readonly PlanningSettings _settings = new();
 
     // Listes principales
@@ -109,14 +115,22 @@ public sealed partial class PlanningViewModel : ViewModelBase
     public ObservableCollection<ProfMinutesDisplay>  MinutesParProf    { get; } = new();
 
     // Listes pour les formulaires
-    public ObservableCollection<EpreuveDisplay>  EpreuvesDisponibles   { get; } = new();
-    public ObservableCollection<Prof>            ProfsDisponibles       { get; } = new();
-    public ObservableCollection<Salle>           SallesDisponibles      { get; } = new();
+    public ObservableCollection<Classe>          ClassesDisponibles     { get; } = new();
+    public ObservableCollection<EpreuveDisplay>  EpreuvesDisponibles    { get; } = new();
+    public ObservableCollection<Prof>            ProfsDisponibles        { get; } = new();
+    public ObservableCollection<Salle>           SallesDisponibles       { get; } = new();
 
     // ── Formulaire: Nouvelle session ──────────────────────────────────────────
     [ObservableProperty] private DateTime _dateNouvelleSession = DateTime.Today;
     [ObservableProperty] private string   _periodeNouvelleSession = "AM";
     [ObservableProperty] private string   _heureDebutNouvelleSession = "08:30";
+
+    public record JourCycleItem(int Valeur, string Libelle);
+    public IReadOnlyList<JourCycleItem> JoursDuCycle { get; } =
+        Enumerable.Range(0, 10)
+            .Select(j => new JourCycleItem(j, j == 0 ? "Non défini" : $"Jour {j}"))
+            .ToList();
+    [ObservableProperty] private JourCycleItem _jourCycleSession = null!;
 
     public IReadOnlyList<string> Periodes { get; } = new[] { "AM", "PM" };
 
@@ -127,14 +141,17 @@ public sealed partial class PlanningViewModel : ViewModelBase
 
     public bool HasSessionSelectionnee => SessionSelectionnee is not null;
 
-    [ObservableProperty] private EpreuveDisplay? _epreuveSelectionnee;
-    [ObservableProperty] private Prof?           _enseignantSelectionne;
-    [ObservableProperty] private Prof?           _surveillantSelectionne;
-    [ObservableProperty] private Salle?          _salleSelectionnee;
-    [ObservableProperty] private string          _codeGroupeInput   = "";
-    [ObservableProperty] private string          _nbElevesInput     = "25";
-    [ObservableProperty] private bool            _tiersTemps;
-    [ObservableProperty] private string          _typeGroupe        = "Standard";
+    [ObservableProperty] private Classe?          _classeSelectionnee;
+    [ObservableProperty] private EpreuveDisplay?  _epreuveSelectionnee;
+    [ObservableProperty] private Prof?            _enseignantSelectionne;
+    [ObservableProperty] private Prof?            _surveillantSelectionne;
+    [ObservableProperty] private Salle?           _salleSelectionnee;
+    [ObservableProperty] private string           _codeGroupeInput   = "";
+    [ObservableProperty] private string           _nbElevesInput     = "25";
+    [ObservableProperty] private string           _heureFinInput     = "11:30";
+    [ObservableProperty] private string           _premierDepartInput = "10:30";
+    [ObservableProperty] private bool             _tiersTemps;
+    [ObservableProperty] private string           _typeGroupe        = "Standard";
 
     public IReadOnlyList<string> TypesGroupe { get; } = new[] { "Standard", "SAI", "EHDAA" };
 
@@ -155,15 +172,10 @@ public sealed partial class PlanningViewModel : ViewModelBase
     // ── Filtre date ───────────────────────────────────────────────────────────
     [ObservableProperty] private DateTime _filtreDate = DateTime.Today;
 
-    partial void OnFiltreDateChanged(DateTime value)
-    {
-        _ = LoadSessionsAsync();
-        _ = LoadMinutesAsync();
-    }
-
     public PlanningViewModel(DataContext db)
     {
         _db = db;
+        _jourCycleSession = JoursDuCycle[0];
         _ = LoadAsync();
     }
 
@@ -171,18 +183,29 @@ public sealed partial class PlanningViewModel : ViewModelBase
     //  Chargement
     // ─────────────────────────────────────────────────────────────────────────
 
+    partial void OnClasseSelectionneeChanged(Classe? value)
+    {
+        if (value is null) return;
+        CodeGroupeInput        = value.Code;
+        NbElevesInput          = value.Effectif > 0 ? value.Effectif.ToString() : NbElevesInput;
+        EnseignantSelectionne  = ProfsDisponibles.FirstOrDefault(p => p.Id == value.ProfId);
+    }
+
     private async Task LoadAsync()
     {
-        var epreuves = await _db.Epreuves.ListAsync();
-        var classes  = await _db.Classes.ListAsync();
-        var profs    = await _db.Profs.ListAsync();
-        var salles   = await _db.Salles.ListAsync();
+        var classes = await _db.Classes.ListAsync();
+        var profs   = await _db.Profs.ListAsync();
+        var salles  = await _db.Salles.ListAsync();
 
+        ClassesDisponibles.Clear();
+        foreach (var c in classes.OrderBy(c => c.Code)) ClassesDisponibles.Add(c);
+
+        var epreuves = await _db.Epreuves.ListAsync();
         EpreuvesDisponibles.Clear();
         foreach (var e in epreuves)
         {
-            var classe = classes.FirstOrDefault(c => c.Id == e.ClasseId);
-            EpreuvesDisponibles.Add(new EpreuveDisplay(e, classe?.Nom ?? "—"));
+            var cl = classes.FirstOrDefault(c => c.Id == e.ClasseId);
+            EpreuvesDisponibles.Add(new EpreuveDisplay(e, cl?.Nom ?? "—"));
         }
 
         ProfsDisponibles.Clear();
@@ -214,18 +237,29 @@ public sealed partial class PlanningViewModel : ViewModelBase
             var groupes = await _db.GroupesExamen.ListBySessionAsync(s.Id);
             foreach (var g in groupes)
             {
-                var ep  = epreuves.FirstOrDefault(x => x.Id == g.EpreuveId);
-                var cl  = ep is not null ? classes.FirstOrDefault(c => c.Id == ep.ClasseId) : null;
+                string description;
+                if (g.ClasseId.HasValue)
+                {
+                    var cl = classes.FirstOrDefault(c => c.Id == g.ClasseId);
+                    description = cl is not null
+                        ? (string.IsNullOrWhiteSpace(cl.Description) ? cl.Code : cl.Description)
+                        : g.CodeGroupe;
+                }
+                else
+                {
+                    var ep = epreuves.FirstOrDefault(x => x.Id == g.EpreuveId);
+                    var cl = ep is not null ? classes.FirstOrDefault(c => c.Id == ep.ClasseId) : null;
+                    description = ep is not null
+                        ? (cl is not null ? $"{ep.Nom} ({cl.Nom})" : ep.Nom)
+                        : g.CodeGroupe;
+                }
+
                 var ens = profs.FirstOrDefault(p => p.Id == g.EnseignantId);
                 var sur = g.SurveillantId.HasValue ? profs.FirstOrDefault(p => p.Id == g.SurveillantId) : null;
                 var sal = g.SalleId.HasValue ? salles.FirstOrDefault(x => x.Id == g.SalleId) : null;
 
-                var epNom = ep is not null
-                    ? (cl is not null ? $"{ep.Nom} ({cl.Nom})" : ep.Nom)
-                    : "—";
-
-                sd.Groupes.Add(new GroupeExamenDisplay(g, epNom,
-                    ens?.Nom ?? "—", sur?.Nom ?? "—", sal?.Nom ?? "—"));
+                sd.Groupes.Add(new GroupeExamenDisplay(g, description,
+                    ens?.Nom ?? "—", sur?.Nom ?? "—", sal?.Nom ?? "—", s.HeureDebut));
             }
 
             var roles = await _db.RolesSurveillance.ListBySessionAsync(s.Id);
@@ -245,15 +279,23 @@ public sealed partial class PlanningViewModel : ViewModelBase
 
     private async Task LoadMinutesAsync()
     {
-        var date   = DateOnly.FromDateTime(FiltreDate);
-        var profs  = await _db.Profs.ListAsync();
-        var quotas = await _db.Quotas.ListAsync();
+        var date     = DateOnly.FromDateTime(FiltreDate);
+        var profs    = await _db.Profs.ListAsync();
+        var quotas   = await _db.Quotas.ListAsync();
+        var sessions = await _db.Sessions.ListByDateAsync(date);
+
+        // Déterminer le jour de cycle de la journée (premier trouvé non nul)
+        var jourCycle = sessions.FirstOrDefault(s => s.JourCycle > 0)?.JourCycle ?? 0;
 
         MinutesParProf.Clear();
         foreach (var p in profs)
         {
             var minutes = await _db.GroupesExamen.GetMinutesAssigneesAsync(p.Id, date);
-            var quota   = quotas.FirstOrDefault(q => q.ProfId == p.Id);
+            // Quota spécifique au jour de cycle, sinon repli sur la moyenne (JourCycle=0)
+            var quota = (jourCycle > 0
+                ? quotas.FirstOrDefault(q => q.ProfId == p.Id && q.JourCycle == jourCycle)
+                : null)
+                ?? quotas.FirstOrDefault(q => q.ProfId == p.Id && q.JourCycle == 0);
             MinutesParProf.Add(new ProfMinutesDisplay
             {
                 Prof             = p,
@@ -279,7 +321,7 @@ public sealed partial class PlanningViewModel : ViewModelBase
     private void JourSuivant() => FiltreDate = FiltreDate.AddDays(1);
 
     [RelayCommand]
-    private void AujourdhUi() => FiltreDate = DateTime.Today;
+    private void Aujourdhui() => FiltreDate = DateTime.Today;
 
     public string FiltreDateLabel
     {
@@ -291,9 +333,11 @@ public sealed partial class PlanningViewModel : ViewModelBase
         }
     }
 
-    partial void OnFiltreDateChanging(DateTime value)
+    partial void OnFiltreDateChanged(DateTime value)
     {
         OnPropertyChanged(nameof(FiltreDateLabel));
+        _ = LoadSessionsAsync();
+        _ = LoadMinutesAsync();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -316,7 +360,8 @@ public sealed partial class PlanningViewModel : ViewModelBase
             Date          = DateNouvelleSession.ToString("yyyy-MM-dd"),
             Periode       = PeriodeNouvelleSession,
             HeureDebut    = HeureDebutNouvelleSession,
-            AnneeScolaire = "2025-2026"
+            JourCycle     = JourCycleSession?.Valeur ?? 0,
+            AnneeScolaire = AppConstants.AnneeScolaire
         };
 
         await _db.Sessions.CreateAsync(session);
@@ -350,11 +395,16 @@ public sealed partial class PlanningViewModel : ViewModelBase
     {
         MessageErreur = "";
 
-        if (SessionSelectionnee is null)        { MessageErreur = "Sélectionnez une session."; return; }
-        if (EpreuveSelectionnee is null)        { MessageErreur = "Sélectionnez une épreuve.";  return; }
-        if (EnseignantSelectionne is null)      { MessageErreur = "Sélectionnez un enseignant."; return; }
+        if (SessionSelectionnee is null)   { MessageErreur = "Sélectionnez une session."; return; }
+        if (ClasseSelectionnee is null)    { MessageErreur = "Sélectionnez un groupe.";  return; }
         if (!int.TryParse(NbElevesInput, out var nbEleves) || nbEleves < 0)
-                                                 { MessageErreur = "Nombre d'élèves invalide."; return; }
+                                            { MessageErreur = "Nombre d'élèves invalide."; return; }
+        if (!TimeSpan.TryParse(HeureFinInput, out var heureFinTs))
+                                            { MessageErreur = "Heure de fin invalide (HH:mm)."; return; }
+        if (!TimeSpan.TryParse(SessionSelectionnee.Session.HeureDebut, out var heureDebutTs))
+                                            { MessageErreur = "Heure de début de la session invalide."; return; }
+        var dureeMinutes = (int)(heureFinTs - heureDebutTs).TotalMinutes;
+        if (dureeMinutes <= 0)              { MessageErreur = "L'heure de fin doit être après l'heure de début."; return; }
 
         // Vérifier conflit de surveillance dans la même session
         if (SurveillantSelectionne is not null)
@@ -374,36 +424,34 @@ public sealed partial class PlanningViewModel : ViewModelBase
             }
         }
 
-        var dureeBase = EpreuveSelectionnee.Epreuve.DureeMinutes;
-        var dureeEff  = TiersTemps
-            ? (int)Math.Ceiling(dureeBase * _settings.TiersTempsMultiplier)
-            : dureeBase;
-
         var groupe = new GroupeExamen
         {
-            SessionId     = SessionSelectionnee.Session.Id,
-            EpreuveId     = EpreuveSelectionnee.Epreuve.Id,
-            CodeGroupe    = CodeGroupeInput.Trim(),
-            EnseignantId  = EnseignantSelectionne.Id,
-            NbEleves      = nbEleves,
-            SurveillantId = SurveillantSelectionne?.Id,
-            SalleId       = SalleSelectionnee?.Id,
-            TiersTemps    = TiersTemps,
-            DureeMinutes  = dureeEff,
-            Type          = TypeGroupe
+            SessionId      = SessionSelectionnee.Session.Id,
+            EpreuveId      = 0,
+            ClasseId       = ClasseSelectionnee.Id,
+            CodeGroupe     = ClasseSelectionnee.Code,
+            EnseignantId   = ClasseSelectionnee.ProfId,
+            NbEleves       = nbEleves,
+            SurveillantId  = SurveillantSelectionne?.Id,
+            SalleId        = SalleSelectionnee?.Id,
+            TiersTemps     = false,
+            DureeMinutes   = dureeMinutes,
+            Type           = "Standard",
+            HeureFin       = HeureFinInput.Trim(),
+            PremierDepart  = PremierDepartInput.Trim()
         };
 
         await _db.GroupesExamen.CreateAsync(groupe);
 
         // Réinitialiser le formulaire groupe
-        EpreuveSelectionnee    = null;
+        ClasseSelectionnee     = null;
         EnseignantSelectionne  = null;
         SurveillantSelectionne = null;
         SalleSelectionnee      = null;
         CodeGroupeInput        = "";
         NbElevesInput          = "25";
-        TiersTemps             = false;
-        TypeGroupe             = "Standard";
+        HeureFinInput          = "11:30";
+        PremierDepartInput     = "10:30";
 
         await LoadSessionsAsync();
         await LoadMinutesAsync();
@@ -492,8 +540,9 @@ public sealed partial class PlanningViewModel : ViewModelBase
         await _db.Quotas.UpsertAsync(new QuotaMinutes
         {
             ProfId        = pmd.Prof.Id,
+            JourCycle     = 0,
             MinutesMax    = pmd.MinutesMax,
-            AnneeScolaire = "2025-2026"
+            AnneeScolaire = AppConstants.AnneeScolaire
         });
     }
 }

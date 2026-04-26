@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -9,7 +10,7 @@ using Schedulys.Data;
 
 namespace Schedulys.App.ViewModels;
 
-public sealed record NavItem(string Label, string Section, PackIconKind Icon);
+public sealed record NavItem(string Label, string Section, PackIconKind Icon, bool IsHeader = false);
 
 public sealed partial class MainShellViewModel : ViewModelBase
 {
@@ -25,13 +26,19 @@ public sealed partial class MainShellViewModel : ViewModelBase
     public IReadOnlyList<NavItem> NavItems { get; } = new NavItem[]
     {
         new("Tableau de bord", "dashboard",   PackIconKind.ViewDashboard),
+        new("PLANIFICATION",   "",            PackIconKind.None,          IsHeader: true),
         new("Horaire",         "horaire",     PackIconKind.CalendarMonth),
+        new("DONNÉES",         "",            PackIconKind.None,          IsHeader: true),
         new("Enseignants",     "enseignants", PackIconKind.AccountTie),
         new("Groupes",         "groupes",     PackIconKind.AccountGroup),
         new("Épreuves",        "epreuves",    PackIconKind.ClipboardText),
         new("Locaux",          "locaux",      PackIconKind.DoorOpen),
+        new("GESTION",         "",            PackIconKind.None,          IsHeader: true),
         new("Exporter",        "exporter",    PackIconKind.Download),
+        new("Licence",         "licence",     PackIconKind.ShieldKey),
     };
+
+    public LicenseInfo? License => App.License;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDashboard))]
@@ -39,6 +46,7 @@ public sealed partial class MainShellViewModel : ViewModelBase
     private NavItem? _selectedNavItem;
 
     public bool   IsDashboard        => SelectedNavItem?.Section is null or "dashboard";
+    public bool   LicenceExpireBientot => App.License is { } l && l.ExpiresAt < DateTime.Now.AddDays(30);
     public string CurrentSectionLabel => SelectedNavItem?.Label ?? "Tableau de bord";
 
     [ObservableProperty] private int    _statEnseignants;
@@ -70,6 +78,8 @@ public sealed partial class MainShellViewModel : ViewModelBase
 
         _selectedNavItem = NavItems[0];
         _ = LoadDashboardAsync();
+        _ = MigrateQuotasParJourAsync();
+        _ = MigrateProfsAsync();
     }
 
     partial void OnSelectedNavItemChanged(NavItem? value)
@@ -115,6 +125,42 @@ public sealed partial class MainShellViewModel : ViewModelBase
     }
 
     private bool PeutImporter() => !ImportEnCours;
+
+    public string MachineId => LicenseService.GetMachineId();
+
+    [RelayCommand]
+    private void Renouveler()
+    {
+        var expiry = App.License?.ExpiresAt.ToString("yyyy-MM-dd") ?? "";
+        var school = App.License?.SchoolName ?? "";
+        var mailto = $"mailto:support@revolvittech.com?subject=Renouvellement%20Schedulys%20-%20{Uri.EscapeDataString(school)}&body=Bonjour%2C%0A%0AJe%20souhaite%20renouveler%20ma%20licence%20Schedulys.%0A%0A%C3%89cole%20%3A%20{Uri.EscapeDataString(school)}%0AExpiration%20actuelle%20%3A%20{expiry}%0A";
+        Process.Start(new ProcessStartInfo(mailto) { UseShellExecute = true });
+    }
+
+    [RelayCommand]
+    private void ChangerCle()
+    {
+        var win = new Schedulys.App.Views.ActivationWindow();
+        if (win.ShowDialog() == true && win.Result is { } info)
+        {
+            App.License = info;
+            OnPropertyChanged(nameof(License));
+            OnPropertyChanged(nameof(LicenceExpireBientot));
+        }
+    }
+
+    private async Task MigrateQuotasParJourAsync()
+    {
+        if (!await DataSeeder.AreQuotasParJourSeededAsync(_db))
+            await DataSeeder.SeedQuotasParJourAsync(_db);
+    }
+
+    private async Task MigrateProfsAsync()
+    {
+        if (!await DataSeeder.NeedsProfsResetAsync(_db)) return;
+        await DataSeeder.ResetProfsAsync(_db);
+        await Task.WhenAll(LoadDashboardAsync(), Teachers.LoadAsync());
+    }
 
     private async Task LoadDashboardAsync()
     {

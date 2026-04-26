@@ -3,99 +3,148 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
 
-  <Grid Margin="24,20">
-    <Grid.RowDefinitions>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="16"/>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="16"/>
-      <RowDefinition Height="*"/>
-      <RowDefinition Height="12"/>
-      <RowDefinition Height="Auto"/>
-    </Grid.RowDefinitions>
+  <Grid Margin="28,24">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="300"/>
+      <ColumnDefinition Width="20"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
 
-    <TextBlock Grid.Row="0" Text="Personnel"
-               Style="{StaticResource MaterialDesignHeadline5TextBlock}"/>
+    <!-- ── Panneau gauche ── -->
+    <StackPanel Grid.Column="0">
 
-    <!-- Formulaire d'ajout -->
-    <md:Card Grid.Row="2" Padding="20" UniformCornerRadius="8">
-      <StackPanel>
-        <TextBlock Text="Ajouter un membre du personnel"
-                   Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
-                   Margin="0,0,0,16"/>
-        <StackPanel Orientation="Horizontal">
-          <TextBox md:HintAssist.Hint="Nom complet"
+      <!-- Formulaire ajout -->
+      <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+        <StackPanel>
+          <TextBlock Text="Ajouter du personnel" Style="{StaticResource CardTitle}"/>
+
+          <TextBlock Text="NOM COMPLET" Style="{StaticResource FieldLabel}"/>
+          <TextBox md:HintAssist.Hint="Ex : Marie Tremblay"
                    Style="{StaticResource MaterialDesignOutlinedTextBox}"
                    Text="{Binding NomInput, UpdateSourceTrigger=PropertyChanged}"
-                   Width="280" Margin="0,0,12,0"/>
-          <ComboBox md:HintAssist.Hint="Rôle"
-                    Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                   Margin="0,0,0,10"/>
+
+          <TextBlock Text="RÔLE" Style="{StaticResource FieldLabel}"/>
+          <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
                     ItemsSource="{Binding Roles}"
                     SelectedItem="{Binding SelectedRole}"
-                    Width="180" Margin="0,0,12,0"/>
-          <TextBox md:HintAssist.Hint="Min/jour cibles"
+                    Margin="0,0,0,10"/>
+
+          <TextBlock Text="MINUTES / JOUR (MOYENNE)" Style="{StaticResource FieldLabel}"/>
+          <TextBox md:HintAssist.Hint="Ex : 90"
                    Style="{StaticResource MaterialDesignOutlinedTextBox}"
                    Text="{Binding MinutesInput, UpdateSourceTrigger=PropertyChanged}"
-                   md:HintAssist.HelperText="De la tâche éducative"
-                   Width="130" Margin="0,0,12,0"/>
-          <Button Content="AJOUTER"
-                  Style="{StaticResource MaterialDesignRaisedButton}"
-                  Command="{Binding AddCommand}"
-                  VerticalAlignment="Center"/>
+                   Margin="0,0,0,14"/>
+
+          <Button Content="Ajouter" Command="{Binding AddCommand}"
+                  Style="{StaticResource BtnPrimary}"
+                  HorizontalAlignment="Left" Padding="20,0"/>
         </StackPanel>
-      </StackPanel>
-    </md:Card>
+      </Border>
 
-    <!-- Grille du personnel -->
-    <DataGrid Grid.Row="4"
-              ItemsSource="{Binding Profs}"
-              SelectedItem="{Binding Selected}"
-              Style="{StaticResource MaterialDesignDataGrid}"
-              AutoGenerateColumns="False"
-              CanUserAddRows="False"
-              IsReadOnly="True"
-              SelectionMode="Single">
-      <DataGrid.Columns>
-        <DataGridTextColumn Header="Nom"         Binding="{Binding Nom}"          Width="*"/>
-        <DataGridTextColumn Header="Rôle"        Binding="{Binding Role}"         Width="180"/>
-        <DataGridTextColumn Header="Min/jour"    Binding="{Binding MinutesLabel}" Width="100"/>
-      </DataGrid.Columns>
-    </DataGrid>
+      <!-- Minutes par jour du cycle -->
+      <Border Style="{StaticResource Card}">
+        <StackPanel>
+          <TextBlock Text="Minutes par jour du cycle" Style="{StaticResource CardTitle}"/>
 
-    <!-- Message erreur -->
-    <TextBlock Grid.Row="5" Foreground="#D32F2F"
-               Text="{Binding Erreur}" FontSize="12" Margin="0,4,0,0">
-      <TextBlock.Style>
-        <Style TargetType="TextBlock">
-          <Setter Property="Visibility" Value="Visible"/>
-          <Style.Triggers>
-            <DataTrigger Binding="{Binding Erreur}" Value="">
-              <Setter Property="Visibility" Value="Collapsed"/>
-            </DataTrigger>
-          </Style.Triggers>
-        </Style>
-      </TextBlock.Style>
-    </TextBlock>
+          <!-- Placeholder -->
+          <TextBlock Text="Sélectionnez un enseignant."
+                     FontSize="12" Foreground="{StaticResource AppTextMuted}">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Selected}" Value="{x:Null}">
+                    <Setter Property="Visibility" Value="Visible"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
 
-    <!-- Actions bas de page -->
-    <DockPanel Grid.Row="6">
-      <!-- Modifier les minutes de la sélection -->
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-        <TextBox md:HintAssist.Hint="Min/jour"
-                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                 Text="{Binding MinutesEditInput, UpdateSourceTrigger=PropertyChanged}"
-                 Width="100" Margin="0,0,8,0"
-                 IsEnabled="{Binding HasSelection}"/>
-        <Button Content="ENREGISTRER MINUTES"
-                Style="{StaticResource MaterialDesignOutlinedButton}"
-                Command="{Binding SaveMinutesCommand}"
-                VerticalAlignment="Center"/>
-      </StackPanel>
+          <!-- Grille jours 0–9 -->
+          <ItemsControl ItemsSource="{Binding QuotasParJour}">
+            <ItemsControl.Style>
+              <Style TargetType="ItemsControl">
+                <Setter Property="Visibility" Value="Visible"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Selected}" Value="{x:Null}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </ItemsControl.Style>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="0,3">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="52"/>
+                    <ColumnDefinition Width="*"/>
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Grid.Column="0" Text="{Binding Label}"
+                             FontSize="12" Foreground="{StaticResource AppTextSub}"
+                             VerticalAlignment="Center"/>
+                  <TextBox Grid.Column="1"
+                           Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                           Text="{Binding MinutesInput, UpdateSourceTrigger=PropertyChanged}"/>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
 
-      <Button DockPanel.Dock="Left"
-              Content="SUPPRIMER LA SÉLECTION"
-              Style="{StaticResource MaterialDesignOutlinedButton}"
-              Command="{Binding DeleteSelectedCommand}"/>
-    </DockPanel>
+          <!-- Boutons -->
+          <DockPanel Margin="0,10,0,0">
+            <Button DockPanel.Dock="Right" Content="Enregistrer"
+                    Style="{StaticResource BtnPrimary}"
+                    Command="{Binding SaveAllQuotasCommand}"
+                    Padding="16,0"/>
+            <Button Content="Supprimer"
+                    Style="{StaticResource BtnDanger}"
+                    Command="{Binding DeleteSelectedCommand}"/>
+          </DockPanel>
+
+          <!-- Erreur -->
+          <TextBlock Text="{Binding Erreur}" Foreground="{StaticResource AppDanger}"
+                     FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Visible"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Erreur}" Value="">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding Erreur}" Value="{x:Null}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+
+    <!-- ── Colonne droite : table ── -->
+    <Grid Grid.Column="2">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="12"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+
+      <TextBlock Grid.Row="0" Text="Personnel" Style="{StaticResource PageTitle}"/>
+
+      <DataGrid Grid.Row="2"
+                ItemsSource="{Binding Profs}"
+                SelectedItem="{Binding Selected}">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="NOM"      Binding="{Binding Nom}"          Width="*"/>
+          <DataGridTextColumn Header="RÔLE"     Binding="{Binding Role}"         Width="200"/>
+          <DataGridTextColumn Header="MOY/JOUR" Binding="{Binding MinutesLabel}" Width="110"/>
+        </DataGrid.Columns>
+      </DataGrid>
+    </Grid>
   </Grid>
 </UserControl>

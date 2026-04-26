@@ -3,62 +3,59 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
 
-  <Grid Margin="24,20">
-    <Grid.RowDefinitions>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="16"/>
-      <RowDefinition Height="Auto"/>
-      <RowDefinition Height="16"/>
-      <RowDefinition Height="*"/>
-      <RowDefinition Height="12"/>
-      <RowDefinition Height="Auto"/>
-    </Grid.RowDefinitions>
+  <Grid Margin="28,24">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="300"/>
+      <ColumnDefinition Width="20"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
 
-    <TextBlock Grid.Row="0" Text="Groupes / Classes"
-               Style="{StaticResource MaterialDesignHeadline5TextBlock}"/>
+    <!-- ── Panneau gauche : formulaire ── -->
+    <StackPanel Grid.Column="0">
+      <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+        <StackPanel>
+          <TextBlock Text="Ajouter un groupe" Style="{StaticResource CardTitle}"/>
 
-    <md:Card Grid.Row="2" Padding="20" UniformCornerRadius="8">
-      <StackPanel>
-        <TextBlock Text="Ajouter une classe"
-                   Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
-                   Margin="0,0,0,16"/>
-        <StackPanel Orientation="Horizontal">
-          <TextBox md:HintAssist.Hint="Nom du groupe (ex : Terminale B)"
+          <TextBlock Text="CODE DU GROUPE" Style="{StaticResource FieldLabel}"/>
+          <TextBox md:HintAssist.Hint="Ex : 132108-01"
                    Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                   Text="{Binding NomInput, UpdateSourceTrigger=PropertyChanged}"
-                   Width="340" Margin="0,0,16,0"/>
-          <TextBox md:HintAssist.Hint="Effectif"
+                   Text="{Binding CodeInput, UpdateSourceTrigger=PropertyChanged}"
+                   FontFamily="Consolas"
+                   Margin="0,0,0,10"/>
+
+          <TextBlock Text="DESCRIPTION DE L'ÉPREUVE" Style="{StaticResource FieldLabel}"/>
+          <TextBox md:HintAssist.Hint="Ex : français écriture"
+                   Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                   Text="{Binding DescriptionInput, UpdateSourceTrigger=PropertyChanged}"
+                   Margin="0,0,0,10"/>
+
+          <TextBlock Text="ENSEIGNANT RESPONSABLE" Style="{StaticResource FieldLabel}"/>
+          <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                    ItemsSource="{Binding Profs}"
+                    SelectedItem="{Binding ProfInput}"
+                    DisplayMemberPath="Nom"
+                    Margin="0,0,0,10"/>
+
+          <TextBlock Text="EFFECTIF" Style="{StaticResource FieldLabel}"/>
+          <TextBox md:HintAssist.Hint="Ex : 28"
                    Style="{StaticResource MaterialDesignOutlinedTextBox}"
                    Text="{Binding EffectifInput, UpdateSourceTrigger=PropertyChanged}"
-                   Width="100" Margin="0,0,16,0"/>
-          <Button Content="AJOUTER"
-                  Style="{StaticResource MaterialDesignRaisedButton}"
-                  Command="{Binding AddCommand}"
-                  VerticalAlignment="Center"/>
+                   Margin="0,0,0,16"/>
+
+          <Button Content="Ajouter" Command="{Binding AddCommand}"
+                  Style="{StaticResource BtnPrimary}"
+                  HorizontalAlignment="Left" Padding="20,0"/>
         </StackPanel>
-      </StackPanel>
-    </md:Card>
+      </Border>
 
-    <DataGrid Grid.Row="4"
-              ItemsSource="{Binding Classes}"
-              SelectedItem="{Binding Selected}"
-              Style="{StaticResource MaterialDesignDataGrid}"
-              AutoGenerateColumns="False"
-              CanUserAddRows="False"
-              IsReadOnly="True"
-              SelectionMode="Single">
-      <DataGrid.Columns>
-        <DataGridTextColumn Header="Nom du groupe" Binding="{Binding Nom}"      Width="*"/>
-        <DataGridTextColumn Header="Effectif"       Binding="{Binding Effectif}" Width="150"/>
-      </DataGrid.Columns>
-    </DataGrid>
+      <Button Content="Supprimer la sélection" Style="{StaticResource BtnDanger}"
+              Command="{Binding DeleteSelectedCommand}" HorizontalAlignment="Left"/>
 
-    <DockPanel Grid.Row="6">
-      <TextBlock DockPanel.Dock="Right" Foreground="#D32F2F"
-                 Text="{Binding Erreur}" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0">
+      <TextBlock Text="{Binding Erreur}" Foreground="{StaticResource AppDanger}"
+                 FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap">
         <TextBlock.Style>
           <Style TargetType="TextBlock">
-            <Setter Property="Visibility" Value="Visible"/>
+            <Setter Property="Visibility" Value="Collapsed"/>
             <Style.Triggers>
               <DataTrigger Binding="{Binding Erreur}" Value="">
                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -67,10 +64,28 @@
           </Style>
         </TextBlock.Style>
       </TextBlock>
-      <Button Content="SUPPRIMER LA SÉLECTION"
-              Style="{StaticResource MaterialDesignOutlinedButton}"
-              Command="{Binding DeleteSelectedCommand}"
-              HorizontalAlignment="Left"/>
-    </DockPanel>
+    </StackPanel>
+
+    <!-- ── Colonne droite : table ── -->
+    <Grid Grid.Column="2">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="12"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+
+      <TextBlock Grid.Row="0" Text="Groupes / Cours" Style="{StaticResource PageTitle}" Margin="0"/>
+
+      <DataGrid Grid.Row="2"
+                ItemsSource="{Binding Classes}"
+                SelectedItem="{Binding Selected}">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="CODE"        Binding="{Binding Code}"        Width="140" FontFamily="Consolas"/>
+          <DataGridTextColumn Header="DESCRIPTION" Binding="{Binding Description}" Width="*"/>
+          <DataGridTextColumn Header="ENSEIGNANT"  Binding="{Binding NomProf}"     Width="180"/>
+          <DataGridTextColumn Header="EFFECTIF"    Binding="{Binding Effectif}"    Width="90"/>
+        </DataGrid.Columns>
+      </DataGrid>
+    </Grid>
   </Grid>
 </UserControl>
