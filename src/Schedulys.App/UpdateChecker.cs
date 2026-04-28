@@ -15,7 +15,7 @@ public static class UpdateChecker
     public const string CurrentVersion = "2.2";
 
     private const string VersionUrl  = "https://kwdykfxrgiqqeskkogta.supabase.co/storage/v1/object/public/releases/version.txt";
-    private const string DownloadUrl = "https://kwdykfxrgiqqeskkogta.supabase.co/storage/v1/object/public/releases/Schedulys-Setup-latest.exe";
+    private const string DownloadUrl = "https://github.com/redmik0909/Schedulys/releases/latest/download/Schedulys-Setup-latest.exe";
 
     private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(10) };
 
