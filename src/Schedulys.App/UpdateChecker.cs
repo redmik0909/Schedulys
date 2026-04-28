@@ -4,26 +4,32 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace Schedulys.App;
 
 public static class UpdateChecker
 {
-    public const string CurrentVersion = "2.0";
+    public const string CurrentVersion = "2.1";
 
     private const string ApiUrl = "https://api.github.com/repos/redmik0909/Schedulys/releases/latest";
+
+    private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(8) };
+
+    static UpdateChecker()
+    {
+        _http.DefaultRequestHeaders.Add("User-Agent", "Schedulys-App");
+    }
 
     public static async Task CheckAndPromptAsync()
     {
         try
         {
-            using var http = new HttpClient();
-            http.DefaultRequestHeaders.Add("User-Agent", "Schedulys-App");
-            http.Timeout = TimeSpan.FromSeconds(8);
-
-            var json = await http.GetStringAsync(ApiUrl);
+            var json = await _http.GetStringAsync(ApiUrl);
             var doc  = JsonDocument.Parse(json);
 
             var tag      = doc.RootElement.GetProperty("tag_name").GetString()?.TrimStart('v') ?? "";
@@ -53,15 +59,110 @@ public static class UpdateChecker
         }
     }
 
-    private static Task DownloadAndInstallAsync(string url, string version)
+    private static async Task DownloadAndInstallAsync(string url, string version)
     {
-        MessageBox.Show(
-            $"Le téléchargement va s'ouvrir dans votre navigateur.\n\nUne fois le fichier téléchargé, lancez-le pour installer Schedulys v{version}.",
-            "Mise à jour — v" + version,
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+        var progressWin = BuildProgressWindow(version);
+        progressWin.Show();
 
-        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-        return Task.CompletedTask;
+        var tmpPath = Path.Combine(Path.GetTempPath(), $"Schedulys-Setup-v{version}.exe");
+
+        try
+        {
+            using var cts      = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+            using var response = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            response.EnsureSuccessStatusCode();
+
+            var total    = response.Content.Headers.ContentLength;
+            var bar      = (ProgressBar)progressWin.FindName("ProgressBar");
+            var lbl      = (TextBlock)progressWin.FindName("StatusLabel");
+
+            if (total.HasValue)
+                bar.IsIndeterminate = false;
+
+            await using var src  = await response.Content.ReadAsStreamAsync(cts.Token);
+            await using var dest = File.Create(tmpPath);
+
+            var buffer    = new byte[81920];
+            long received = 0;
+            int  read;
+            while ((read = await src.ReadAsync(buffer, cts.Token)) > 0)
+            {
+                await dest.WriteAsync(buffer.AsMemory(0, read), cts.Token);
+                received += read;
+                if (total.HasValue)
+                {
+                    var pct = (double)received / total.Value * 100;
+                    bar.Value = pct;
+                    lbl.Text  = $"Téléchargement… {pct:F0} %";
+                }
+            }
+
+            progressWin.Close();
+            Process.Start(new ProcessStartInfo(tmpPath) { UseShellExecute = true });
+
+            await Task.Delay(600);
+            Application.Current.Dispatcher.Invoke(() => Application.Current.Shutdown());
+        }
+        catch (Exception ex)
+        {
+            progressWin.Close();
+            MessageBox.Show(
+                $"Le téléchargement a échoué :\n{ex.Message}\n\nVeuillez télécharger manuellement depuis GitHub.",
+                "Erreur de mise à jour",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
+    private static Window BuildProgressWindow(string version)
+    {
+        var bar = new ProgressBar
+        {
+            Name            = "ProgressBar",
+            IsIndeterminate = true,
+            Height          = 18,
+            Margin          = new Thickness(0, 8, 0, 0),
+            Foreground      = new SolidColorBrush(Color.FromRgb(79, 70, 229)),
+        };
+
+        var lbl = new TextBlock
+        {
+            Name       = "StatusLabel",
+            Text       = "Téléchargement en cours…",
+            Foreground = new SolidColorBrush(Color.FromRgb(100, 116, 139)),
+            FontSize   = 13,
+            Margin     = new Thickness(0, 0, 0, 4),
+        };
+
+        var title = new TextBlock
+        {
+            Text       = $"Mise à jour — v{version}",
+            FontSize   = 15,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(Color.FromRgb(15, 23, 42)),
+            Margin     = new Thickness(0, 0, 0, 12),
+        };
+
+        var panel = new StackPanel { Margin = new Thickness(28) };
+        panel.Children.Add(title);
+        panel.Children.Add(lbl);
+        panel.Children.Add(bar);
+
+        var win = new Window
+        {
+            Title           = "Mise à jour Schedulys",
+            Width           = 380,
+            SizeToContent   = SizeToContent.Height,
+            ResizeMode      = ResizeMode.NoResize,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen,
+            Background      = new SolidColorBrush(Colors.White),
+            Content         = panel,
+        };
+
+        // Enregistre les noms pour FindName()
+        win.RegisterName(bar.Name, bar);
+        win.RegisterName(lbl.Name, lbl);
+
+        return win;
     }
 }
