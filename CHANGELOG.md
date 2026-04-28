@@ -5,6 +5,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
 ## [Unreleased]
 
+## [1.9] - 2026-04-28
+
 ## [1.8] - 2026-04-28
 
 ## [1.7] - 2026-04-27
@@ -16,6 +18,8 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 ## [1.4] - 2026-04-26
 
 ## [Unreleased]
+
+## [1.9] - 2026-04-28
 
 ## [1.8] - 2026-04-28
 
@@ -59,6 +63,7 @@ Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 - Exportation des données en Excel/CSV
 - Système de licence avec activation par clé (DPAPI, licence.dat)
 - Page de gestion de licence (statut, renouvellement, expiration)
+
 
 
 
