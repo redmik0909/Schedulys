@@ -1,9 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -14,11 +12,12 @@ namespace Schedulys.App;
 
 public static class UpdateChecker
 {
-    public const string CurrentVersion = "2.1";
+    public const string CurrentVersion = "2.2";
 
-    private const string ApiUrl = "https://api.github.com/repos/redmik0909/Schedulys/releases/latest";
+    private const string VersionUrl  = "https://kwdykfxrgiqqeskkogta.supabase.co/storage/v1/object/public/releases/version.txt";
+    private const string DownloadUrl = "https://kwdykfxrgiqqeskkogta.supabase.co/storage/v1/object/public/releases/Schedulys-Setup-latest.exe";
 
-    private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(8) };
+    private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(10) };
 
     static UpdateChecker()
     {
@@ -29,33 +28,25 @@ public static class UpdateChecker
     {
         try
         {
-            var json = await _http.GetStringAsync(ApiUrl);
-            var doc  = JsonDocument.Parse(json);
+            var latest = (await _http.GetStringAsync(VersionUrl)).Trim();
 
-            var tag      = doc.RootElement.GetProperty("tag_name").GetString()?.TrimStart('v') ?? "";
-            var assetUrl = doc.RootElement
-                .GetProperty("assets")
-                .EnumerateArray()
-                .Select(a => a.GetProperty("browser_download_url").GetString())
-                .FirstOrDefault(u => u?.EndsWith(".exe") == true);
-
-            if (!Version.TryParse(tag, out var latest)) return;
+            if (!Version.TryParse(latest, out var latestVer)) return;
             if (!Version.TryParse(CurrentVersion, out var current)) return;
-            if (latest <= current) return;
+            if (latestVer <= current) return;
 
             var result = MessageBox.Show(
-                $"Une nouvelle version est disponible : v{tag}\n\nVoulez-vous la télécharger et l'installer maintenant ?",
+                $"Une nouvelle version est disponible : v{latest}\n\nVoulez-vous la télécharger et l'installer maintenant ?",
                 "Mise à jour disponible",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Information);
 
-            if (result != MessageBoxResult.Yes || assetUrl is null) return;
+            if (result != MessageBoxResult.Yes) return;
 
-            await DownloadAndInstallAsync(assetUrl, tag);
+            await DownloadAndInstallAsync(DownloadUrl, latest);
         }
         catch
         {
-            // Silencieux — pas de connexion ou API indisponible
+            // Silencieux — pas de connexion ou serveur indisponible
         }
     }
 
