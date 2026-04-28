@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="Demander une licence"
-        Width="480" Height="460"
+        Width="480" MinHeight="400" SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         WindowStyle="SingleBorderWindow"
@@ -66,7 +66,7 @@
                            Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0"/>
               <TextBlock FontSize="11" Foreground="{StaticResource AppTextMuted}" VerticalAlignment="Center">
                 <Run Text="ID machine : "/>
-                <Run Text="{Binding MachineId}" FontFamily="Consolas"/>
+                <Run Text="{Binding MachineId, Mode=OneWay}" FontFamily="Consolas"/>
               </TextBlock>
             </StackPanel>
           </Border>

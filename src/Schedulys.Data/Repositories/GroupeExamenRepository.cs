@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Schedulys.Core.Interfaces;
@@ -104,6 +105,31 @@ public sealed class GroupeExamenRepository : IGroupeExamenRepository
         var fromRoles = await cn.ExecuteScalarAsync<int>(sqlR, new { profId, d, annee });
 
         return fromGroupes + fromRoles;
+    }
+
+    // Batch : minutes assignées pour TOUS les profs à une date donnée (1 seule requête).
+    // Utilisé par le tableau de quotas pour éviter le N+1.
+    public async Task<IReadOnlyDictionary<int, int>> GetMinutesAssigneesByProfAsync(DateOnly date)
+    {
+        using var cn = _factory.Create();
+        await cn.OpenAsync();
+        var d = date.ToString("yyyy-MM-dd");
+
+        var rows = await cn.QueryAsync<(int ProfId, int Minutes)>(@"
+            SELECT ProfId, SUM(Minutes) AS Minutes FROM (
+                SELECT g.SurveillantId AS ProfId, g.DureeMinutes AS Minutes
+                FROM GroupesExamen g
+                JOIN Sessions s ON s.Id = g.SessionId
+                WHERE g.SurveillantId IS NOT NULL AND s.Date = @d
+                UNION ALL
+                SELECT r.SurveillantId AS ProfId, r.DureeMinutes AS Minutes
+                FROM RolesSurveillance r
+                JOIN Sessions s ON s.Id = r.SessionId
+                WHERE s.Date = @d
+            )
+            GROUP BY ProfId", new { d });
+
+        return rows.ToDictionary(r => r.ProfId, r => r.Minutes);
     }
 
     public async Task<bool> UpdateAsync(GroupeExamen g)

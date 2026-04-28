@@ -1,7 +1,8 @@
 <UserControl x:Class="Schedulys.App.Views.GroupesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:Schedulys.App.ViewModels">
 
   <Grid Margin="28,24">
     <Grid.ColumnDefinitions>
@@ -10,63 +11,88 @@
       <ColumnDefinition Width="*"/>
     </Grid.ColumnDefinitions>
 
-    <!-- ── Panneau gauche : formulaire ── -->
+    <!-- ── Panneau gauche : création en lot ── -->
     <StackPanel Grid.Column="0">
-      <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+      <Border Style="{StaticResource Card}">
         <StackPanel>
-          <TextBlock Text="Ajouter un groupe" Style="{StaticResource CardTitle}"/>
+          <TextBlock Text="Créer des groupes en lot" Style="{StaticResource CardTitle}"/>
 
-          <TextBlock Text="CODE DU GROUPE" Style="{StaticResource FieldLabel}"/>
-          <TextBox md:HintAssist.Hint="Ex : 132108-01"
+          <TextBlock Text="CODE MATIÈRE (ex : 132)" Style="{StaticResource FieldLabel}"/>
+          <TextBox md:HintAssist.Hint="3 chiffres — ex : 132"
                    Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                   Text="{Binding CodeInput, UpdateSourceTrigger=PropertyChanged}"
-                   FontFamily="Consolas"
+                   Text="{Binding CodeMatiereInput, UpdateSourceTrigger=PropertyChanged}"
+                   FontFamily="Consolas" MaxLength="3"
                    Margin="0,0,0,10"/>
 
-          <TextBlock Text="DESCRIPTION DE L'ÉPREUVE" Style="{StaticResource FieldLabel}"/>
-          <TextBox md:HintAssist.Hint="Ex : français écriture"
+          <TextBlock Text="NIVEAU (ex : 108)" Style="{StaticResource FieldLabel}"/>
+          <TextBox md:HintAssist.Hint="3 chiffres — ex : 108"
+                   Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                   Text="{Binding NiveauInput, UpdateSourceTrigger=PropertyChanged}"
+                   FontFamily="Consolas" MaxLength="3"
+                   Margin="0,0,0,10"/>
+
+          <TextBlock Text="NOMBRE DE GROUPES" Style="{StaticResource FieldLabel}"/>
+          <TextBox md:HintAssist.Hint="Ex : 6"
+                   Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                   Text="{Binding NbGroupesInput, UpdateSourceTrigger=PropertyChanged}"
+                   Margin="0,0,0,10"/>
+
+          <TextBlock Text="NOM DU COURS" Style="{StaticResource FieldLabel}"/>
+          <TextBox md:HintAssist.Hint="Ex : Français"
                    Style="{StaticResource MaterialDesignOutlinedTextBox}"
                    Text="{Binding DescriptionInput, UpdateSourceTrigger=PropertyChanged}"
                    Margin="0,0,0,10"/>
 
-          <TextBlock Text="ENSEIGNANT RESPONSABLE" Style="{StaticResource FieldLabel}"/>
+          <TextBlock Text="NIVEAU SCOLAIRE" Style="{StaticResource FieldLabel}"/>
           <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                    ItemsSource="{Binding Profs}"
-                    SelectedItem="{Binding ProfInput}"
-                    DisplayMemberPath="Nom"
-                    Margin="0,0,0,10"/>
+                    ItemsSource="{x:Static vm:GroupesViewModel.NiveauxScolaires}"
+                    SelectedItem="{Binding NiveauScolaireInput}"
+                    DisplayMemberPath="Libelle"
+                    Margin="0,0,0,16"/>
 
-          <TextBlock Text="EFFECTIF" Style="{StaticResource FieldLabel}"/>
-          <TextBox md:HintAssist.Hint="Ex : 28"
-                   Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                   Text="{Binding EffectifInput, UpdateSourceTrigger=PropertyChanged}"
-                   Margin="0,0,0,16"/>
-
-          <Button Content="Ajouter" Command="{Binding AddCommand}"
+          <Button Content="Créer les groupes" Command="{Binding CreateBatchCommand}"
                   Style="{StaticResource BtnPrimary}"
                   HorizontalAlignment="Left" Padding="20,0"/>
+
+          <TextBlock Text="{Binding Message}" Foreground="{StaticResource AppSuccess}"
+                     FontSize="12" Margin="0,10,0,0" TextWrapping="Wrap">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Visible"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Message}" Value="">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding Message}" Value="{x:Null}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+
+          <TextBlock Text="{Binding Erreur}" Foreground="{StaticResource AppDanger}"
+                     FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Visible"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Erreur}" Value="">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding Erreur}" Value="{x:Null}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+
         </StackPanel>
       </Border>
-
-      <Button Content="Supprimer la sélection" Style="{StaticResource BtnDanger}"
-              Command="{Binding DeleteSelectedCommand}" HorizontalAlignment="Left"/>
-
-      <TextBlock Text="{Binding Erreur}" Foreground="{StaticResource AppDanger}"
-                 FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap">
-        <TextBlock.Style>
-          <Style TargetType="TextBlock">
-            <Setter Property="Visibility" Value="Collapsed"/>
-            <Style.Triggers>
-              <DataTrigger Binding="{Binding Erreur}" Value="">
-                <Setter Property="Visibility" Value="Collapsed"/>
-              </DataTrigger>
-            </Style.Triggers>
-          </Style>
-        </TextBlock.Style>
-      </TextBlock>
     </StackPanel>
 
-    <!-- ── Colonne droite : table ── -->
+    <!-- ── Colonne droite : groupes ── -->
     <Grid Grid.Column="2">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto"/>
@@ -74,18 +100,141 @@
         <RowDefinition Height="*"/>
       </Grid.RowDefinitions>
 
-      <TextBlock Grid.Row="0" Text="Groupes / Cours" Style="{StaticResource PageTitle}" Margin="0"/>
+      <DockPanel Grid.Row="0">
+        <TextBlock Text="Groupes / Cours" Style="{StaticResource PageTitle}" DockPanel.Dock="Left"/>
+        <Button Content="Sauvegarder tout"
+                Command="{Binding SaveAllCommand}"
+                Style="{StaticResource BtnPrimary}"
+                HorizontalAlignment="Right" VerticalAlignment="Center"
+                Padding="14,0" Height="34"/>
+      </DockPanel>
 
-      <DataGrid Grid.Row="2"
-                ItemsSource="{Binding Classes}"
-                SelectedItem="{Binding Selected}">
-        <DataGrid.Columns>
-          <DataGridTextColumn Header="CODE"        Binding="{Binding Code}"        Width="140" FontFamily="Consolas"/>
-          <DataGridTextColumn Header="DESCRIPTION" Binding="{Binding Description}" Width="*"/>
-          <DataGridTextColumn Header="ENSEIGNANT"  Binding="{Binding NomProf}"     Width="180"/>
-          <DataGridTextColumn Header="EFFECTIF"    Binding="{Binding Effectif}"    Width="90"/>
-        </DataGrid.Columns>
-      </DataGrid>
+      <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+        <ItemsControl ItemsSource="{Binding GroupedClasses}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="{x:Type vm:GroupeMatiere}">
+              <StackPanel Margin="0,0,0,12">
+
+                <!-- En-tête du groupe -->
+                <DockPanel Background="{StaticResource AppAccentLight}" LastChildFill="True">
+                  <Button DockPanel.Dock="Right"
+                          Content="Supprimer le groupe"
+                          Command="{Binding DataContext.DeleteGroupeCommand,
+                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                          CommandParameter="{Binding}"
+                          Style="{StaticResource BtnDanger}"
+                          Padding="10,2" Height="26" VerticalAlignment="Center" Margin="4"/>
+                  <TextBlock Text="{Binding Header}"
+                             Foreground="{StaticResource AppAccent}"
+                             FontWeight="Bold" FontSize="12" FontFamily="Consolas"
+                             Padding="10,6" VerticalAlignment="Center"/>
+                </DockPanel>
+
+                <!-- En-tête des colonnes -->
+                <Grid Background="{StaticResource AppHover}"
+                      Margin="0,0,0,0">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="190"/>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="100"/>
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Grid.Column="0" Text="CODE"
+                             FontSize="10" FontWeight="SemiBold"
+                             Foreground="{StaticResource AppTextSub}"
+                             Padding="8,5" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="1" Text="NOM DU COURS"
+                             FontSize="10" FontWeight="SemiBold"
+                             Foreground="{StaticResource AppTextSub}"
+                             Padding="4,5" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="2" Text="ENSEIGNANT"
+                             FontSize="10" FontWeight="SemiBold"
+                             Foreground="{StaticResource AppTextSub}"
+                             Padding="4,5" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="3" Text="EFFECTIF"
+                             FontSize="10" FontWeight="SemiBold"
+                             Foreground="{StaticResource AppTextSub}"
+                             Padding="4,5" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="4" Padding="4,5"/>
+                </Grid>
+
+                <!-- Lignes éditables -->
+                <ItemsControl ItemsSource="{Binding Items}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:ClasseDisplay}">
+                      <Border BorderThickness="0,0,0,1"
+                              BorderBrush="{StaticResource AppBorder}">
+                        <Border.Style>
+                          <Style TargetType="Border">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Style.Triggers>
+                              <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{StaticResource AppHover}"/>
+                              </Trigger>
+                            </Style.Triggers>
+                          </Style>
+                        </Border.Style>
+                        <Grid>
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="190"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="100"/>
+                          </Grid.ColumnDefinitions>
+
+                          <!-- Code : TextBox éditable -->
+                          <TextBox Grid.Column="0"
+                                   Text="{Binding CodeInput, UpdateSourceTrigger=PropertyChanged}"
+                                   FontFamily="Consolas" FontSize="12"
+                                   Margin="4,4"
+                                   VerticalAlignment="Center"/>
+
+                          <!-- Nom du cours : TextBox éditable -->
+                          <TextBox Grid.Column="1"
+                                   Text="{Binding DescriptionInput, UpdateSourceTrigger=PropertyChanged}"
+                                   Margin="4,4"
+                                   VerticalAlignment="Center"/>
+
+                          <!-- Enseignant : ComboBox toujours visible -->
+                          <ComboBox Grid.Column="2"
+                                    ItemsSource="{Binding DataContext.Profs,
+                                                  RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    SelectedItem="{Binding SelectedProf, UpdateSourceTrigger=PropertyChanged}"
+                                    DisplayMemberPath="Nom"
+                                    Margin="4,4"
+                                    VerticalAlignment="Center"
+                                    md:HintAssist.Hint="— sélectionner —"/>
+
+                          <!-- Effectif : TextBox toujours visible -->
+                          <TextBox Grid.Column="3"
+                                   Text="{Binding EffectifInput, UpdateSourceTrigger=PropertyChanged}"
+                                   md:HintAssist.Hint="0"
+                                   Margin="4,4"
+                                   VerticalAlignment="Center"/>
+
+                          <!-- Supprimer la ligne -->
+                          <Button Grid.Column="4"
+                                  Content="Supprimer"
+                                  Command="{Binding DataContext.DeleteClasseCommand,
+                                            RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                  CommandParameter="{Binding}"
+                                  Style="{StaticResource BtnDanger}"
+                                  Padding="8,2" Height="26" Margin="4,3"
+                                  VerticalAlignment="Center"/>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
     </Grid>
   </Grid>
 </UserControl>

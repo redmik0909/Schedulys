@@ -39,6 +39,14 @@ public sealed class RoleSurveillanceRepository : IRoleSurveillanceRepository
             new { sessionId })).AsList();
     }
 
+    public async Task<IReadOnlyList<RoleSurveillance>> ListAllAsync()
+    {
+        using var cn = _factory.Create();
+        await cn.OpenAsync();
+        return (await cn.QueryAsync<RoleSurveillance>(
+            "SELECT * FROM RolesSurveillance ORDER BY SessionId, TypeRole")).AsList();
+    }
+
     public async Task<bool> UpdateAsync(RoleSurveillance r)
     {
         using var cn = _factory.Create();

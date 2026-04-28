@@ -17,8 +17,8 @@ public sealed class SessionRepository : ISessionRepository
         using var cn = _factory.Create();
         await cn.OpenAsync();
         return (int)await cn.ExecuteScalarAsync<long>(
-            @"INSERT INTO Sessions(Date, Periode, HeureDebut, AnneeScolaire)
-              VALUES (@Date, @Periode, @HeureDebut, @AnneeScolaire);
+            @"INSERT INTO Sessions(Date, Periode, HeureDebut, AnneeScolaire, JourCycle)
+              VALUES (@Date, @Periode, @HeureDebut, @AnneeScolaire, @JourCycle);
               SELECT last_insert_rowid();", s);
     }
 
@@ -64,7 +64,7 @@ public sealed class SessionRepository : ISessionRepository
         await cn.OpenAsync();
         var rows = await cn.ExecuteAsync(
             @"UPDATE Sessions SET Date=@Date, Periode=@Periode, HeureDebut=@HeureDebut,
-              AnneeScolaire=@AnneeScolaire WHERE Id=@Id", s);
+              AnneeScolaire=@AnneeScolaire, JourCycle=@JourCycle WHERE Id=@Id", s);
         return rows > 0;
     }
 
@@ -72,9 +72,11 @@ public sealed class SessionRepository : ISessionRepository
     {
         using var cn = _factory.Create();
         await cn.OpenAsync();
-        await cn.ExecuteAsync("DELETE FROM GroupesExamen    WHERE SessionId=@id", new { id });
-        await cn.ExecuteAsync("DELETE FROM RolesSurveillance WHERE SessionId=@id", new { id });
-        var rows = await cn.ExecuteAsync("DELETE FROM Sessions WHERE Id=@id", new { id });
+        using var tx = cn.BeginTransaction();
+        await cn.ExecuteAsync("DELETE FROM GroupesExamen     WHERE SessionId=@id", new { id }, tx);
+        await cn.ExecuteAsync("DELETE FROM RolesSurveillance WHERE SessionId=@id", new { id }, tx);
+        var rows = await cn.ExecuteAsync("DELETE FROM Sessions WHERE Id=@id", new { id }, tx);
+        tx.Commit();
         return rows > 0;
     }
 }

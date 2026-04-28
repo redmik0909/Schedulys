@@ -5,8 +5,10 @@
         xmlns:views="clr-namespace:Schedulys.App.Views"
         xmlns:vm="clr-namespace:Schedulys.App.ViewModels"
         Title="Schedulys"
+        Icon="pack://application:,,,/Assets/schedulys.ico"
         Height="820" Width="1380"
         MinHeight="680" MinWidth="1100"
+        WindowState="Maximized"
         WindowStartupLocation="CenterScreen"
         TextElement.FontFamily="Segoe UI"
         TextElement.FontSize="13"
@@ -44,11 +46,33 @@
         <!-- Séparateur -->
         <Border DockPanel.Dock="Top" Height="1" Background="#1E293B" Margin="0,0,0,8"/>
 
+        <!-- Bandeau mode d'essai -->
+        <Border DockPanel.Dock="Bottom" Background="#92400E" Padding="12,7">
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding IsTrialLicense}" Value="True">
+                  <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <StackPanel>
+            <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="#FEF3C7"
+                       Text="🔬 Mode d'essai"/>
+            <TextBlock FontSize="10" Foreground="#FDE68A">
+              <Run Text="{Binding TrialJoursRestants, Mode=OneWay}"/>
+              <Run Text="jours restants"/>
+            </TextBlock>
+          </StackPanel>
+        </Border>
+
         <!-- École + version en bas -->
         <Border DockPanel.Dock="Bottom" Padding="20,12" BorderThickness="0,1,0,0"
                 BorderBrush="#1E293B">
           <DockPanel>
-            <TextBlock DockPanel.Dock="Right" Text="v1.1" Foreground="#334155"
+            <TextBlock DockPanel.Dock="Right" Text="{Binding AppVersion}" Foreground="#334155"
                        FontSize="10" VerticalAlignment="Bottom"/>
             <StackPanel>
               <TextBlock Text="{Binding License.SchoolName, FallbackValue='—'}"
@@ -312,40 +336,6 @@
               </DockPanel>
             </Border>
 
-            <!-- Import données -->
-            <Border Style="{StaticResource Card}" Padding="0">
-              <DockPanel Margin="22,18,22,18">
-                <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center">
-                  <Button Content="Importer"
-                          Style="{StaticResource BtnPrimary}"
-                          Command="{Binding ImporterDonneesCommand}"
-                          Padding="20,0" Height="36"/>
-                  <TextBlock Text="{Binding ImportStatus}"
-                             FontSize="11" Foreground="#10B981"
-                             HorizontalAlignment="Center" Margin="0,8,0,0">
-                    <TextBlock.Style>
-                      <Style TargetType="TextBlock">
-                        <Setter Property="Visibility" Value="Visible"/>
-                        <Style.Triggers>
-                          <DataTrigger Binding="{Binding ImportStatus}" Value="">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                          </DataTrigger>
-                        </Style.Triggers>
-                      </Style>
-                    </TextBlock.Style>
-                  </TextBlock>
-                </StackPanel>
-                <StackPanel VerticalAlignment="Center">
-                  <TextBlock Text="Données initiales" FontSize="14" FontWeight="SemiBold"
-                             Foreground="{StaticResource AppText}"/>
-                  <TextBlock Foreground="{StaticResource AppTextSub}"
-                             FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap" MaxWidth="520">
-                    Importer enseignants, locaux, épreuves et sessions depuis le calendrier scolaire 2025-2026
-                  </TextBlock>
-                </StackPanel>
-              </DockPanel>
-            </Border>
-
           </StackPanel>
         </ScrollViewer>
 
@@ -404,6 +394,20 @@
             </Style>
           </Border.Style>
           <views:ExamsView DataContext="{Binding Exams}" IsVisibleChanged="OnExamsVisibleChanged"/>
+        </Border>
+
+        <Border>
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedNavItem.Section}" Value="surveillance">
+                  <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <views:SurveillanceView DataContext="{Binding Surveillance}"/>
         </Border>
 
         <Border>

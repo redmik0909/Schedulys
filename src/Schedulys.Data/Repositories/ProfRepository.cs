@@ -55,7 +55,13 @@ public sealed class ProfRepository : IProfRepository
         using var cn = _factory.Create();
         await cn.OpenAsync();
         using var tx = cn.BeginTransaction();
-        await cn.ExecuteAsync("DELETE FROM Creneaux WHERE SurveillantId=@id", new { id }, tx);
+        // Nettoyage des références (FK désactivées au niveau SQLite — on nettoie manuellement)
+        await cn.ExecuteAsync("DELETE FROM QuotasMinutes     WHERE ProfId=@id",                            new { id }, tx);
+        await cn.ExecuteAsync("DELETE FROM Creneaux          WHERE SurveillantId=@id",                     new { id }, tx);
+        await cn.ExecuteAsync("DELETE FROM RolesSurveillance WHERE SurveillantId=@id",                     new { id }, tx);
+        await cn.ExecuteAsync("DELETE FROM GroupesExamen     WHERE EnseignantId=@id OR SurveillantId=@id", new { id }, tx);
+        // Détache le prof des classes (au lieu de supprimer les classes)
+        await cn.ExecuteAsync("UPDATE Classes SET ProfId=0 WHERE ProfId=@id", new { id }, tx);
         var n = await cn.ExecuteAsync("DELETE FROM Profs WHERE Id=@id", new { id }, tx);
         tx.Commit();
         return n > 0;

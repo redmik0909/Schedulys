@@ -11,6 +11,7 @@ public interface IGroupeExamenRepository
     Task<IReadOnlyList<GroupeExamen>> ListBySessionAsync(int sessionId);
     Task<IReadOnlyList<GroupeExamen>> ListByPeriodeAsync(DateOnly debut, DateOnly fin);
     Task<int>                         GetMinutesAssigneesAsync(int profId, DateOnly? date = null, string? annee = null);
+    Task<IReadOnlyDictionary<int,int>> GetMinutesAssigneesByProfAsync(DateOnly date);
     Task<bool>                        UpdateAsync(GroupeExamen g);
     Task<bool>                        DeleteAsync(int id);
 }

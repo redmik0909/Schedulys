@@ -7,5 +7,6 @@ public sealed class Epreuve
     public int DureeMinutes { get; set; }
     public bool TiersTemps { get; set; }
     public bool Ministerielle { get; set; }
+    public int  Niveau { get; set; }
     public string Annee { get; set; } = "2025-2026";
 }

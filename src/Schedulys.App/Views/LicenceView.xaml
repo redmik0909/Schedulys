@@ -136,6 +136,22 @@
         </Grid>
       </Border>
 
+      <!-- Diagnostic DB -->
+      <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+        <DockPanel>
+          <md:PackIcon DockPanel.Dock="Left" Kind="DatabaseSearch" Width="20" Height="20"
+                       Foreground="{StaticResource AppAccent}" VerticalAlignment="Center"/>
+          <Button DockPanel.Dock="Right" Content="Rapport" Command="{Binding DiagnosticCommand}"
+                  Style="{StaticResource BtnSecondary}" VerticalAlignment="Center"/>
+          <StackPanel Margin="14,0,12,0">
+            <TextBlock Text="Diagnostic base de données" FontSize="13" FontWeight="SemiBold"
+                       Foreground="{StaticResource AppText}"/>
+            <TextBlock Text="Affiche les compteurs bruts de la base de données locale."
+                       FontSize="12" Foreground="{StaticResource AppTextSub}" Margin="0,3,0,0"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
       <!-- Support -->
       <Border Style="{StaticResource Card}">
         <DockPanel>

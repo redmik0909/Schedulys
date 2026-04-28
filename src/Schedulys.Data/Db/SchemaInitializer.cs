@@ -6,10 +6,14 @@ namespace Schedulys.Data.Db;
 
 public static class SchemaInitializer
 {
-  public static async Task InitAsync(SqliteConnectionFactory factory)
+  public static async Task InitAsync(SqliteConnectionFactory factory, Action<string>? log = null)
   {
     using var cn = factory.Create();
     await cn.OpenAsync();
+
+    log?.Invoke("Connexion ouverte, FK désactivées.");
+    // Désactiver FK pendant toutes les migrations (Microsoft.Data.Sqlite 8+ les active par défaut)
+    await cn.ExecuteAsync("PRAGMA foreign_keys = OFF;");
 
     var ddl = @"
 CREATE TABLE IF NOT EXISTS Profs(
@@ -84,7 +88,7 @@ CREATE TABLE IF NOT EXISTS Sessions (
 CREATE TABLE IF NOT EXISTS GroupesExamen (
   Id            INTEGER PRIMARY KEY AUTOINCREMENT,
   SessionId     INTEGER NOT NULL,
-  EpreuveId     INTEGER NOT NULL,
+  EpreuveId     INTEGER NOT NULL DEFAULT 0,
   CodeGroupe    TEXT    NOT NULL DEFAULT '',
   EnseignantId  INTEGER NOT NULL DEFAULT 0,
   NbEleves      INTEGER NOT NULL DEFAULT 0,
@@ -93,8 +97,7 @@ CREATE TABLE IF NOT EXISTS GroupesExamen (
   TiersTemps    INTEGER NOT NULL DEFAULT 0,
   DureeMinutes  INTEGER NOT NULL DEFAULT 0,
   Type          TEXT    NOT NULL DEFAULT 'Standard',
-  FOREIGN KEY (SessionId)    REFERENCES Sessions(Id),
-  FOREIGN KEY (EpreuveId)    REFERENCES Epreuves(Id)
+  FOREIGN KEY (SessionId) REFERENCES Sessions(Id)
 );
 
 CREATE TABLE IF NOT EXISTS RolesSurveillance (
@@ -110,9 +113,10 @@ CREATE TABLE IF NOT EXISTS RolesSurveillance (
 CREATE TABLE IF NOT EXISTS QuotasMinutes (
   Id            INTEGER PRIMARY KEY AUTOINCREMENT,
   ProfId        INTEGER NOT NULL,
+  JourCycle     INTEGER NOT NULL DEFAULT 0,
   MinutesMax    INTEGER NOT NULL,
   AnneeScolaire TEXT    NOT NULL,
-  UNIQUE(ProfId, AnneeScolaire)
+  UNIQUE(ProfId, JourCycle, AnneeScolaire)
 );
 
 CREATE INDEX IF NOT EXISTS IDX_Sessions_Date          ON Sessions(Date);
@@ -138,6 +142,94 @@ CREATE INDEX IF NOT EXISTS IDX_Quotas_Prof            ON QuotasMinutes(ProfId);
     await AddColumnIfMissing(cn, "GroupesExamen", "HeureFin",      "TEXT NOT NULL DEFAULT ''");
     await AddColumnIfMissing(cn, "GroupesExamen", "PremierDepart", "TEXT NOT NULL DEFAULT ''");
 
+    // Migration : suppression FK EpreuveId→Epreuves dans GroupesExamen
+    var geCreateSql = await cn.ExecuteScalarAsync<string>(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='GroupesExamen'");
+    if (geCreateSql?.Contains("Epreuves") == true)
+    {
+        log?.Invoke("Migration GroupesExamen : suppression FK EpreuveId → démarrage.");
+        using var tx = cn.BeginTransaction();
+        await cn.ExecuteAsync("ALTER TABLE GroupesExamen RENAME TO GroupesExamen_old", transaction: tx);
+        await cn.ExecuteAsync(@"
+CREATE TABLE GroupesExamen (
+  Id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  SessionId     INTEGER NOT NULL,
+  EpreuveId     INTEGER NOT NULL DEFAULT 0,
+  CodeGroupe    TEXT    NOT NULL DEFAULT '',
+  EnseignantId  INTEGER NOT NULL DEFAULT 0,
+  NbEleves      INTEGER NOT NULL DEFAULT 0,
+  SurveillantId INTEGER,
+  SalleId       INTEGER,
+  TiersTemps    INTEGER NOT NULL DEFAULT 0,
+  DureeMinutes  INTEGER NOT NULL DEFAULT 0,
+  Type          TEXT    NOT NULL DEFAULT 'Standard',
+  ClasseId      INTEGER,
+  HeureFin      TEXT    NOT NULL DEFAULT '',
+  PremierDepart TEXT    NOT NULL DEFAULT '',
+  FOREIGN KEY (SessionId) REFERENCES Sessions(Id)
+)", transaction: tx);
+        await cn.ExecuteAsync(@"
+INSERT INTO GroupesExamen(Id, SessionId, EpreuveId, CodeGroupe, EnseignantId,
+  NbEleves, SurveillantId, SalleId, TiersTemps, DureeMinutes, Type,
+  ClasseId, HeureFin, PremierDepart)
+SELECT Id, SessionId, EpreuveId, CodeGroupe, EnseignantId,
+  NbEleves, SurveillantId, SalleId, TiersTemps, DureeMinutes, Type,
+  ClasseId, IFNULL(HeureFin,''), IFNULL(PremierDepart,'')
+FROM GroupesExamen_old", transaction: tx);
+        await cn.ExecuteAsync("DROP TABLE GroupesExamen_old", transaction: tx);
+        await cn.ExecuteAsync("CREATE INDEX IF NOT EXISTS IDX_GroupesExamen_Session ON GroupesExamen(SessionId)", transaction: tx);
+        await cn.ExecuteAsync("CREATE INDEX IF NOT EXISTS IDX_GroupesExamen_Surv    ON GroupesExamen(SurveillantId)", transaction: tx);
+        await cn.ExecuteAsync("CREATE INDEX IF NOT EXISTS IDX_GroupesExamen_Ens     ON GroupesExamen(EnseignantId)", transaction: tx);
+        tx.Commit();
+        log?.Invoke("Migration GroupesExamen : terminée avec succès.");
+    }
+
+    // Table EpreuveGroupes (relation N-N épreuves ↔ groupes)
+    await cn.ExecuteAsync(@"
+CREATE TABLE IF NOT EXISTS EpreuveGroupes (
+  EpreuveId INTEGER NOT NULL,
+  ClasseId  INTEGER NOT NULL,
+  PRIMARY KEY (EpreuveId, ClasseId)
+);
+CREATE INDEX IF NOT EXISTS IDX_EprGrp_Epreuve ON EpreuveGroupes(EpreuveId);
+CREATE INDEX IF NOT EXISTS IDX_EprGrp_Classe  ON EpreuveGroupes(ClasseId);
+");
+
+    // Colonnes défensives sur Epreuves (vieilles DB antérieures au schéma initial)
+    await AddColumnIfMissing(cn, "Epreuves", "TiersTemps",    "INTEGER NOT NULL DEFAULT 0");
+    await AddColumnIfMissing(cn, "Epreuves", "Ministerielle", "INTEGER NOT NULL DEFAULT 0");
+    await AddColumnIfMissing(cn, "Epreuves", "Annee",         "TEXT    NOT NULL DEFAULT '2025-2026'");
+
+    // Migration : suppression FK ClasseId→Classes dans Epreuves (inutile depuis EpreuveGroupes N-N)
+    var epreuvesCreateSql = await cn.ExecuteScalarAsync<string>(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='Epreuves'");
+    if (epreuvesCreateSql?.Contains("REFERENCES Classes") == true)
+    {
+        log?.Invoke("Migration Epreuves : suppression FK ClasseId→Classes → démarrage.");
+        using var tx = cn.BeginTransaction();
+        await cn.ExecuteAsync("ALTER TABLE Epreuves RENAME TO Epreuves_old", transaction: tx);
+        await cn.ExecuteAsync(@"
+CREATE TABLE Epreuves (
+  Id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  Nom          TEXT    NOT NULL,
+  ClasseId     INTEGER NOT NULL DEFAULT 0,
+  DureeMinutes INTEGER NOT NULL,
+  TiersTemps   INTEGER NOT NULL DEFAULT 0,
+  Ministerielle INTEGER NOT NULL DEFAULT 0,
+  Annee        TEXT    NOT NULL
+)", transaction: tx);
+        await cn.ExecuteAsync(@"
+INSERT INTO Epreuves(Id, Nom, ClasseId, DureeMinutes, TiersTemps, Ministerielle, Annee)
+SELECT Id, Nom, ClasseId, DureeMinutes, TiersTemps, Ministerielle, Annee FROM Epreuves_old",
+            transaction: tx);
+        await cn.ExecuteAsync("DROP TABLE Epreuves_old", transaction: tx);
+        tx.Commit();
+        log?.Invoke("Migration Epreuves : terminée avec succès.");
+    }
+
+    // Migration Niveau sur Epreuves
+    await AddColumnIfMissing(cn, "Epreuves", "Niveau", "INTEGER NOT NULL DEFAULT 0");
+
     // Migration JourCycle : Sessions
     await AddColumnIfMissing(cn, "Sessions", "JourCycle", "INTEGER NOT NULL DEFAULT 0");
 
@@ -146,6 +238,7 @@ CREATE INDEX IF NOT EXISTS IDX_Quotas_Prof            ON QuotasMinutes(ProfId);
         "SELECT COUNT(*) FROM pragma_table_info('QuotasMinutes') WHERE name='JourCycle';");
     if (hasJourCycleQuotas == 0)
     {
+        log?.Invoke("Migration QuotasMinutes : ajout colonne JourCycle → démarrage.");
         using var tx = cn.BeginTransaction();
         await cn.ExecuteAsync("ALTER TABLE QuotasMinutes RENAME TO QuotasMinutes_old", transaction: tx);
         await cn.ExecuteAsync(@"
@@ -164,7 +257,10 @@ SELECT Id, ProfId, 0, MinutesMax, AnneeScolaire FROM QuotasMinutes_old;", transa
         await cn.ExecuteAsync(
             "CREATE INDEX IF NOT EXISTS IDX_Quotas_Prof ON QuotasMinutes(ProfId)", transaction: tx);
         tx.Commit();
+        log?.Invoke("Migration QuotasMinutes : terminée avec succès.");
     }
+
+    log?.Invoke("Toutes les migrations terminées.");
   }
 
     private static async Task AddColumnIfMissing(SqliteConnection cn, string table, string column, string sqlType)

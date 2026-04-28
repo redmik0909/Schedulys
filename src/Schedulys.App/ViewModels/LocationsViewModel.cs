@@ -18,13 +18,37 @@ public sealed partial class LocationsViewModel : ViewModelBase
     public IReadOnlyList<string> Types { get; } = new[]
         { "Standard", "Labo informatique", "Amphithéâtre", "Gymnase", "Salle de dessin" };
 
-    [ObservableProperty] private string _nomInput = "";
+    [ObservableProperty] private string _nomInput      = "";
     [ObservableProperty] private string _capaciteInput = "";
-    [ObservableProperty] private string _selectedType = "Standard";
+    [ObservableProperty] private string _selectedType  = "Standard";
+    [ObservableProperty] private string _erreur        = "";
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(DeleteSelectedCommand))]
+    [NotifyPropertyChangedFor(nameof(HasSelection))]
+    [NotifyPropertyChangedFor(nameof(AddButtonLabel))]
+    [NotifyPropertyChangedFor(nameof(FormTitle))]
     private Salle? _selected;
+
+    public bool   HasSelection  => Selected is not null;
+    public string AddButtonLabel => Selected is not null ? "Modifier" : "Ajouter";
+    public string FormTitle      => Selected is not null ? "Modifier le local" : "Ajouter un local";
+
+    partial void OnSelectedChanged(Salle? value)
+    {
+        if (value is not null)
+        {
+            NomInput      = value.Nom;
+            CapaciteInput = value.Capacite.ToString();
+            SelectedType  = value.Type ?? "Standard";
+        }
+        else
+        {
+            NomInput      = "";
+            CapaciteInput = "";
+            SelectedType  = "Standard";
+        }
+    }
 
     public LocationsViewModel(DataContext db)
     {
@@ -44,18 +68,30 @@ public sealed partial class LocationsViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(NomInput)) return;
         int.TryParse(CapaciteInput, out var cap);
+
+        if (Selected is not null)
+        {
+            // Mode modification
+            Selected.Nom      = NomInput.Trim();
+            Selected.Capacite = cap;
+            Selected.Type     = SelectedType;
+            await _db.Salles.UpdateAsync(Selected);
+            await LoadAsync();
+            return;
+        }
+
+        // Mode ajout
         await _db.Salles.CreateAsync(new Salle
         {
             Nom      = NomInput.Trim(),
             Capacite = cap,
-            Type     = SelectedType
+            Type     = SelectedType,
+            Annee    = AppConstants.AnneeScolaire
         });
         NomInput      = "";
         CapaciteInput = "";
         await LoadAsync();
     }
-
-    [ObservableProperty] private string _erreur = "";
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private async Task DeleteSelectedAsync()
@@ -74,6 +110,4 @@ public sealed partial class LocationsViewModel : ViewModelBase
             Erreur = $"Impossible de supprimer : {ex.Message}";
         }
     }
-
-    private bool HasSelection() => Selected is not null;
 }

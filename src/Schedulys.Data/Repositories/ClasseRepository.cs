@@ -14,8 +14,8 @@ public sealed class ClasseRepository : IClasseRepository
     public async Task<int> CreateAsync(Classe c)
     {
         const string sql = @"
-            INSERT INTO Classes (Nom, Code, Description, ProfId, Effectif, Annee)
-            VALUES (@Nom, @Code, @Description, @ProfId, @Effectif, @Annee);
+            INSERT INTO Classes (Nom, Code, Description, ProfId, Effectif, Niveau, Annee)
+            VALUES (@Nom, @Code, @Description, @ProfId, @Effectif, @Niveau, @Annee);
             SELECT last_insert_rowid();";
         using var cn = _factory.Create();
         return (int)(long)await cn.ExecuteScalarAsync<long>(sql, c);
@@ -63,7 +63,7 @@ public sealed class ClasseRepository : IClasseRepository
         var n = await cn.ExecuteAsync(@"
             UPDATE Classes
             SET Nom=@Nom, Code=@Code, Description=@Description,
-                ProfId=@ProfId, Effectif=@Effectif, Annee=@Annee
+                ProfId=@ProfId, Effectif=@Effectif, Niveau=@Niveau, Annee=@Annee
             WHERE Id=@Id;", c);
         return n > 0;
     }
@@ -73,9 +73,11 @@ public sealed class ClasseRepository : IClasseRepository
         using var cn = _factory.Create();
         await cn.OpenAsync();
         using var tx = cn.BeginTransaction();
+        await cn.ExecuteAsync("DELETE FROM EpreuveGroupes WHERE ClasseId=@id", new { id }, tx);
         await cn.ExecuteAsync("DELETE FROM GroupesExamen WHERE ClasseId=@id", new { id }, tx);
         await cn.ExecuteAsync("DELETE FROM Creneaux WHERE EpreuveId IN (SELECT Id FROM Epreuves WHERE ClasseId=@id)", new { id }, tx);
         await cn.ExecuteAsync("DELETE FROM GroupesExamen WHERE EpreuveId IN (SELECT Id FROM Epreuves WHERE ClasseId=@id)", new { id }, tx);
+        await cn.ExecuteAsync("DELETE FROM EpreuveGroupes WHERE EpreuveId IN (SELECT Id FROM Epreuves WHERE ClasseId=@id)", new { id }, tx);
         await cn.ExecuteAsync("DELETE FROM Epreuves WHERE ClasseId=@id", new { id }, tx);
         await cn.ExecuteAsync("DELETE FROM Eleves WHERE ClasseId=@id", new { id }, tx);
         var n = await cn.ExecuteAsync("DELETE FROM Classes WHERE Id=@id", new { id }, tx);

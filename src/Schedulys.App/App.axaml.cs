@@ -1,7 +1,9 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using Sentry;
 using Schedulys.Data;
 using Schedulys.Data.Db;
 using Schedulys.App.ViewModels;
@@ -11,18 +13,62 @@ namespace Schedulys.App;
 
 public partial class App : Application
 {
-    public static DataContext  Db      { get; private set; } = null!;
-    public static LicenseInfo? License { get; set; }
+    // ── Remplace par ton DSN Sentry (sentry.io → projet → Settings → DSN) ──
+    private static readonly string SentryDsn = "https://2c92a958212954ed66ad795a4e04a88d@o4511296069566464.ingest.us.sentry.io/4511296091586560";
+
+    public static DataContext   Db      { get; private set; } = null!;
+    public static LicenseInfo?  License { get; set; }
 
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
+        // Empêche WPF de fermer l'app quand l'ActivationWindow se ferme avant la MainWindow
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+        // Initialise le logger fichier le plus tôt possible — tous les flux suivants
+        // (gestionnaires d'exceptions, licence, Sentry) peuvent ainsi logger.
+        var appData = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Schedulys");
+        AppLogger.Init(appData);
+
+        var logPath = Path.Combine(appData, "crash.log");
+
+        void LogException(Exception ex, string source)
+        {
+            try
+            {
+                var msg = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {source}\n{ex}\n\n";
+                File.AppendAllText(logPath, msg);
+            }
+            catch { }
+        }
+
         DispatcherUnhandledException += (_, args) =>
         {
-            MessageBox.Show(args.Exception.Message, "Erreur inattendue",
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            LogException(args.Exception, "DispatcherUnhandledException");
+            AppLogger.Error("DISPATCHER", "Exception non gérée", args.Exception);
+            MessageBox.Show(
+                $"{args.Exception.GetType().Name}: {args.Exception.Message}\n\nLog: {logPath}",
+                "Erreur inattendue", MessageBoxButton.OK, MessageBoxImage.Error);
             args.Handled = true;
+        };
+
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            if (args.ExceptionObject is Exception ex)
+            {
+                LogException(ex, "AppDomain.UnhandledException");
+                AppLogger.Error("APPDOMAIN", "Exception non gérée", ex);
+            }
+        };
+
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            LogException(args.Exception, "UnobservedTaskException");
+            AppLogger.Error("TASK", "Tâche async non observée", args.Exception);
+            args.SetObserved();
         };
 
         // ── Vérification licence ──────────────────────────────────────────
@@ -40,26 +86,93 @@ public partial class App : Application
         }
         else
         {
-            // Refresh silencieux en tâche de fond (1x/semaine)
             _ = Task.Run(() => LicenseService.RefreshAsync(License.LicenseKey));
         }
 
+        // ── Sentry ───────────────────────────────────────────────────────
+        if (SentryDsn != "SENTRY_DSN_ICI")
+        {
+            SentrySdk.Init(options =>
+            {
+                options.Dsn                 = SentryDsn;
+                options.Release             = $"schedulys@{UpdateChecker.CurrentVersion}";
+                options.Environment         = "production";
+                options.AutoSessionTracking = true;
+                options.IsGlobalModeEnabled = true;
+                options.AttachStacktrace    = true;
+                options.SendDefaultPii      = false;
+            });
+
+            SentrySdk.ConfigureScope(scope =>
+            {
+                scope.User = new SentryUser
+                {
+                    Username = License?.SchoolName ?? "inconnu",
+                    Id       = LicenseService.GetMachineId(),
+                };
+                scope.SetTag("version", UpdateChecker.CurrentVersion);
+                scope.SetTag("school",  License?.SchoolName ?? "inconnu");
+                var keyPreview = License?.LicenseKey is { Length: > 0 } k
+                    ? k[..Math.Min(8, k.Length)] + "…"
+                    : "N/A";
+                scope.SetTag("licence_key", keyPreview);
+            });
+
+            AppLogger.InitSentry();
+        }
+
         // ── Démarrage normal ─────────────────────────────────────────────
-        var appData = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "Schedulys");
         var dbPath = Path.Combine(appData, "data.db");
 
+        AppLogger.Info("STARTUP", $"=== Schedulys v{UpdateChecker.CurrentVersion} démarré ===");
+        AppLogger.Info("STARTUP", $"École : {License?.SchoolName ?? "inconnue"} | Licence expire : {License?.ExpiresAt:yyyy-MM-dd}");
+        AppLogger.Info("STARTUP", $"DB : {dbPath} | Existe : {File.Exists(dbPath)} | Taille : {(File.Exists(dbPath) ? $"{new FileInfo(dbPath).Length / 1024.0:F1} KB" : "N/A")}");
+
+        BackupDatabase(dbPath, appData);
+
         var factory = new SqliteConnectionFactory(dbPath);
-        await SchemaInitializer.InitAsync(factory);
+        AppLogger.Info("STARTUP", "Initialisation du schéma...");
+        await SchemaInitializer.InitAsync(factory, msg => AppLogger.Info("MIGRATION", msg));
+        AppLogger.Info("STARTUP", "Schéma initialisé.");
         Db = new DataContext(dbPath);
 
         var window = new MainWindow
         {
             DataContext = new MainShellViewModel(Db)
         };
+        window.Closed += (_, _) => Shutdown();
         window.Show();
 
         _ = UpdateChecker.CheckAndPromptAsync();
+    }
+
+    private static void BackupDatabase(string dbPath, string appData)
+    {
+        try
+        {
+            if (!File.Exists(dbPath)) return;
+
+            var backupDir = Path.Combine(appData, "backups");
+            Directory.CreateDirectory(backupDir);
+
+            var stamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+            var dest  = Path.Combine(backupDir, $"data_{stamp}.db");
+            File.Copy(dbPath, dest, overwrite: false);
+            AppLogger.Info("BACKUP", $"Sauvegarde créée : {dest}");
+
+            var files = Directory.GetFiles(backupDir, "data_*.db")
+                                 .OrderByDescending(f => f)
+                                 .Skip(10)
+                                 .ToArray();
+            foreach (var old in files)
+            {
+                File.Delete(old);
+                AppLogger.Info("BACKUP", $"Ancienne sauvegarde supprimée : {Path.GetFileName(old)}");
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Error("BACKUP", "Échec de la sauvegarde", ex);
+        }
     }
 }

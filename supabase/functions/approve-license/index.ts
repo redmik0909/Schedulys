@@ -15,9 +15,10 @@ function generateLicenseKey(): string {
   return `SCHEDULYS-${seg(4)}-${seg(4)}-${seg(4)}-${seg(4)}`;
 }
 
-function htmlSuccess(school: string, email: string, key: string, expires: string): string {
+function htmlSuccess(school: string, email: string, key: string, expires: string, trial: boolean): string {
   return `<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:520px;margin:60px auto;text-align:center">
-    <h2 style="color:#16A34A">✅ Licence approuvée !</h2>
+    <h2 style="color:#16A34A">${trial ? "🔬 Licence d'essai activée !" : "✅ Licence approuvée !"}</h2>
+    ${trial ? `<p style="background:#FEF3C7;padding:10px;border-radius:8px;color:#92400E">Licence d'essai — expire dans 30 jours</p>` : ""}
     <p>Un courriel avec la clé a été envoyé à <strong>${email}</strong>.</p>
     <p>École : <strong>${school}</strong></p>
     <p>Clé : <code style="background:#f0f0f0;padding:4px 10px;border-radius:4px;font-size:16px">${key}</code></p>
@@ -51,6 +52,7 @@ Deno.serve(async (req) => {
   const url       = new URL(req.url);
   const requestId = url.searchParams.get("request_id");
   const token     = url.searchParams.get("token");
+  const isTrial   = url.searchParams.get("trial") === "true";
 
   const htmlHeaders = { "Content-Type": "text/html; charset=utf-8" };
 
@@ -83,11 +85,15 @@ Deno.serve(async (req) => {
     );
   }
 
-  // Génère la clé et la date d'expiration (1 an)
+  // Génère la clé et la date d'expiration
   const licenseKey = generateLicenseKey();
   const expiresAt  = new Date();
-  expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-  const expiresStr = expiresAt.toISOString().split("T")[0]; // YYYY-MM-DD
+  if (isTrial) {
+    expiresAt.setDate(expiresAt.getDate() + 30);
+  } else {
+    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+  }
+  const expiresStr = expiresAt.toISOString().split("T")[0];
   const expiresFr  = expiresAt.toLocaleDateString("fr-CA", { year: "numeric", month: "long", day: "numeric" });
 
   // Insère dans licenses
@@ -97,6 +103,7 @@ Deno.serve(async (req) => {
     email:           request.email,
     expires_at:      expiresStr,
     max_activations: 3,
+    is_trial:        isTrial,
   });
 
   if (insertError) {
@@ -127,7 +134,7 @@ Deno.serve(async (req) => {
   });
 
   return new Response(
-    htmlSuccess(request.school_name, request.email, licenseKey, expiresFr),
+    htmlSuccess(request.school_name, request.email, licenseKey, expiresFr, isTrial),
     { headers: htmlHeaders }
   );
 });

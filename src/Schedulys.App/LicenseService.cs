@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -18,6 +19,7 @@ public sealed class LicenseInfo
     public string        LicenseKey { get; init; } = "";
     public DateTime      ExpiresAt  { get; init; }
     public LicenseStatus Status     { get; init; }
+    public bool          IsTrial    { get; init; }
 }
 
 public static class LicenseService
@@ -62,7 +64,8 @@ public static class LicenseService
                 SchoolName = token.SchoolName,
                 LicenseKey = token.LicenseKey,
                 ExpiresAt  = token.ExpiresAt,
-                Status     = status
+                Status     = status,
+                IsTrial    = token.IsTrial
             };
         }
         catch { return null; }
@@ -96,15 +99,16 @@ public static class LicenseService
         if (!result.Valid)
             throw new LicenseException(result.Error ?? "Licence invalide.");
 
-        var expiry = DateTime.Parse(result.ExpiresAt!);
-        SaveToken(licenseKey, result.SchoolName!, expiry);
+        var expiry = ParseExpiryUtc(result.ExpiresAt!);
+        SaveToken(licenseKey, result.SchoolName!, expiry, result.IsTrial);
 
         return new LicenseInfo
         {
             LicenseKey = licenseKey,
             SchoolName = result.SchoolName!,
             ExpiresAt  = expiry,
-            Status     = LicenseStatus.Valid
+            Status     = LicenseStatus.Valid,
+            IsTrial    = result.IsTrial
         };
     }
 
@@ -120,14 +124,27 @@ public static class LicenseService
 
             var result = await resp.Content.ReadFromJsonAsync<ValidationResult>();
             if (result?.Valid == true)
-                SaveToken(licenseKey, result.SchoolName!, DateTime.Parse(result.ExpiresAt!));
+                SaveToken(licenseKey, result.SchoolName!, ParseExpiryUtc(result.ExpiresAt!), result.IsTrial);
         }
         catch { /* silencieux — offline OK */ }
     }
 
+    // Parse la date d'expiration en UTC consistant — accepte "YYYY-MM-DD" (date seule),
+    // "YYYY-MM-DDTHH:MM:SSZ" ou avec offset. Évite le bug de fuseau horaire au Québec.
+    private static DateTime ParseExpiryUtc(string raw)
+    {
+        var dt = DateTime.Parse(raw, CultureInfo.InvariantCulture,
+            DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+        // Pour une date seule (YYYY-MM-DD), considère la fin de journée UTC pour éviter
+        // une expiration prématurée juste avant minuit local.
+        if (dt.TimeOfDay == TimeSpan.Zero && raw.Length == 10)
+            dt = dt.AddDays(1).AddSeconds(-1);
+        return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+    }
+
     // ── Helpers privés ──────────────────────────────────────────────────────
 
-    private static void SaveToken(string key, string school, DateTime expiry)
+    private static void SaveToken(string key, string school, DateTime expiry, bool isTrial = false)
     {
         var token = new LocalToken
         {
@@ -135,7 +152,8 @@ public static class LicenseService
             SchoolName = school,
             ExpiresAt  = expiry,
             MachineId  = GetMachineId(),
-            SavedAt    = DateTime.UtcNow
+            SavedAt    = DateTime.UtcNow,
+            IsTrial    = isTrial
         };
         token.Signature = ComputeSignature(token);
 
@@ -207,6 +225,7 @@ public static class LicenseService
         public string   MachineId  { get; set; } = "";
         public DateTime SavedAt    { get; set; }
         public string   Signature  { get; set; } = "";
+        public bool     IsTrial    { get; set; }
     }
 
     private sealed class ValidationResult
@@ -215,6 +234,7 @@ public static class LicenseService
         [JsonPropertyName("school_name")] public string? SchoolName { get; set; }
         [JsonPropertyName("expires_at")]  public string? ExpiresAt  { get; set; }
         [JsonPropertyName("error")]       public string? Error      { get; set; }
+        [JsonPropertyName("is_trial")]    public bool    IsTrial    { get; set; }
     }
 }
 

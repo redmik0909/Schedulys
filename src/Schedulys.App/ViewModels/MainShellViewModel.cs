@@ -16,12 +16,13 @@ public sealed partial class MainShellViewModel : ViewModelBase
 {
     private readonly DataContext _db;
 
-    public TeachersViewModel  Teachers  { get; }
-    public LocationsViewModel Locations { get; }
-    public GroupesViewModel   Groupes   { get; }
-    public ExamsViewModel     Exams     { get; }
-    public PlanningViewModel  Planning  { get; }
-    public ExportsViewModel   Exports   { get; }
+    public TeachersViewModel      Teachers      { get; }
+    public LocationsViewModel     Locations     { get; }
+    public GroupesViewModel       Groupes       { get; }
+    public ExamsViewModel         Exams         { get; }
+    public PlanningViewModel      Planning      { get; }
+    public SurveillanceViewModel  Surveillance  { get; }
+    public ExportsViewModel       Exports       { get; }
 
     public IReadOnlyList<NavItem> NavItems { get; } = new NavItem[]
     {
@@ -29,10 +30,11 @@ public sealed partial class MainShellViewModel : ViewModelBase
         new("PLANIFICATION",   "",            PackIconKind.None,          IsHeader: true),
         new("Horaire",         "horaire",     PackIconKind.CalendarMonth),
         new("DONNÉES",         "",            PackIconKind.None,          IsHeader: true),
-        new("Enseignants",     "enseignants", PackIconKind.AccountTie),
+        new("Personnel",       "enseignants", PackIconKind.AccountTie),
         new("Groupes",         "groupes",     PackIconKind.AccountGroup),
-        new("Épreuves",        "epreuves",    PackIconKind.ClipboardText),
-        new("Locaux",          "locaux",      PackIconKind.DoorOpen),
+        new("Épreuves",        "epreuves",       PackIconKind.ClipboardText),
+        new("Surveillance",    "surveillance",   PackIconKind.ShieldAccount),
+        new("Locaux",          "locaux",         PackIconKind.DoorOpen),
         new("GESTION",         "",            PackIconKind.None,          IsHeader: true),
         new("Exporter",        "exporter",    PackIconKind.Download),
         new("Licence",         "licence",     PackIconKind.ShieldKey),
@@ -45,17 +47,17 @@ public sealed partial class MainShellViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(CurrentSectionLabel))]
     private NavItem? _selectedNavItem;
 
-    public bool   IsDashboard        => SelectedNavItem?.Section is null or "dashboard";
-    public bool   LicenceExpireBientot => App.License is { } l && l.ExpiresAt < DateTime.Now.AddDays(30);
-    public string CurrentSectionLabel => SelectedNavItem?.Label ?? "Tableau de bord";
+    public bool   IsDashboard          => SelectedNavItem?.Section is null or "dashboard";
+    public bool   LicenceExpireBientot => App.License is { } l && !l.IsTrial && l.ExpiresAt < DateTime.UtcNow.AddDays(30);
+    public bool   IsTrialLicense       => App.License?.IsTrial == true;
+    public int    TrialJoursRestants   => App.License is { } l ? Math.Max(0, (int)(l.ExpiresAt - DateTime.UtcNow).TotalDays) : 0;
+    public string CurrentSectionLabel  => SelectedNavItem?.Label ?? "Tableau de bord";
 
     [ObservableProperty] private int    _statEnseignants;
     [ObservableProperty] private int    _statGroupes;
     [ObservableProperty] private int    _statLocaux;
     [ObservableProperty] private int    _statEpreuves;
     [ObservableProperty] private int    _statCreneaux;
-    [ObservableProperty] private string _importStatus = "";
-    [ObservableProperty] private bool   _importEnCours;
 
     public string TodayLabel
     {
@@ -69,17 +71,17 @@ public sealed partial class MainShellViewModel : ViewModelBase
     public MainShellViewModel(DataContext db)
     {
         _db       = db;
-        Teachers  = new TeachersViewModel(db);
-        Locations = new LocationsViewModel(db);
-        Groupes   = new GroupesViewModel(db);
-        Exams     = new ExamsViewModel(db);
-        Planning  = new PlanningViewModel(db);
-        Exports   = new ExportsViewModel(db);
+        Teachers     = new TeachersViewModel(db);
+        Locations    = new LocationsViewModel(db);
+        Groupes      = new GroupesViewModel(db);
+        Exams        = new ExamsViewModel(db);
+        Planning     = new PlanningViewModel(db);
+        Surveillance = new SurveillanceViewModel(db);
+        Exports      = new ExportsViewModel(db);
 
         _selectedNavItem = NavItems[0];
         _ = LoadDashboardAsync();
-        _ = MigrateQuotasParJourAsync();
-        _ = MigrateProfsAsync();
+        _ = MigrateAsync();
     }
 
     partial void OnSelectedNavItemChanged(NavItem? value)
@@ -88,45 +90,8 @@ public sealed partial class MainShellViewModel : ViewModelBase
             _ = LoadDashboardAsync();
     }
 
-    [RelayCommand(CanExecute = nameof(PeutImporter))]
-    private async Task ImporterDonneesAsync()
-    {
-        ImportEnCours = true;
-        ImporterDonneesCommand.NotifyCanExecuteChanged();
-        ImportStatus  = "Vérification...";
-        try
-        {
-            if (await DataSeeder.IsAlreadySeededAsync(_db))
-            {
-                ImportStatus = "Données déjà importées.";
-                return;
-            }
-            ImportStatus = "Import en cours...";
-            await DataSeeder.SeedAsync(_db);
-            await Task.WhenAll(
-                LoadDashboardAsync(),
-                Teachers.LoadAsync(),
-                Locations.LoadAsync(),
-                Groupes.LoadAsync(),
-                Exams.RefreshAsync(),
-                Planning.ReloadAllAsync()
-            );
-            ImportStatus = "Import terminé avec succès !";
-        }
-        catch (Exception ex)
-        {
-            ImportStatus = $"Erreur : {ex.Message}";
-        }
-        finally
-        {
-            ImportEnCours = false;
-            ImporterDonneesCommand.NotifyCanExecuteChanged();
-        }
-    }
-
-    private bool PeutImporter() => !ImportEnCours;
-
-    public string MachineId => LicenseService.GetMachineId();
+    public string MachineId   => LicenseService.GetMachineId();
+    public string AppVersion  => $"v{UpdateChecker.CurrentVersion}";
 
     [RelayCommand]
     private void Renouveler()
@@ -149,17 +114,56 @@ public sealed partial class MainShellViewModel : ViewModelBase
         }
     }
 
-    private async Task MigrateQuotasParJourAsync()
+    [RelayCommand]
+    private async Task DiagnosticAsync()
     {
-        if (!await DataSeeder.AreQuotasParJourSeededAsync(_db))
-            await DataSeeder.SeedQuotasParJourAsync(_db);
+        try
+        {
+            var profs     = (await _db.Profs.ListAsync()).Count;
+            var classes   = (await _db.Classes.ListAsync()).Count;
+            var salles    = (await _db.Salles.ListAsync()).Count;
+            var epreuves  = (await _db.Epreuves.ListAsync()).Count;
+            var sessions  = (await _db.Sessions.ListByPeriodeAsync(
+                                DateOnly.FromDateTime(DateTime.Today.AddYears(-2)),
+                                DateOnly.FromDateTime(DateTime.Today.AddYears(2)))).Count;
+
+            var dbPath = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "Schedulys", "data.db");
+            var dbSize = System.IO.File.Exists(dbPath)
+                ? $"{new System.IO.FileInfo(dbPath).Length / 1024.0:F1} KB"
+                : "introuvable";
+
+            System.Windows.MessageBox.Show(
+                $"Base de données : {dbPath}\nTaille : {dbSize}\n\n" +
+                $"Enseignants : {profs}\n" +
+                $"Groupes (Classes) : {classes}\n" +
+                $"Salles : {salles}\n" +
+                $"Épreuves : {epreuves}\n" +
+                $"Sessions : {sessions}\n\n" +
+                $"Version : {UpdateChecker.CurrentVersion}",
+                "Diagnostic — Schedulys",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                $"Erreur lors du diagnostic :\n{ex.Message}",
+                "Diagnostic — Erreur",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Error);
+        }
     }
 
-    private async Task MigrateProfsAsync()
+    private async Task MigrateAsync()
     {
-        if (!await DataSeeder.NeedsProfsResetAsync(_db)) return;
-        await DataSeeder.ResetProfsAsync(_db);
-        await Task.WhenAll(LoadDashboardAsync(), Teachers.LoadAsync());
+        if (await DataSeeder.NeedsProfsResetAsync(_db))
+        {
+            AppLogger.Warn("MIGRATE", "Enseignants legacy détectés — réinitialisation.");
+            await DataSeeder.ResetProfsAsync(_db, msg => AppLogger.Info("MIGRATE", msg));
+            await Task.WhenAll(LoadDashboardAsync(), Teachers.LoadAsync());
+        }
     }
 
     private async Task LoadDashboardAsync()

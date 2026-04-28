@@ -89,9 +89,10 @@ Deno.serve(async (req) => {
 
   return new Response(
     JSON.stringify({
-      valid: true,
+      valid:       true,
       school_name: license.school_name,
-      expires_at: license.expires_at,
+      expires_at:  license.expires_at,
+      is_trial:    license.is_trial ?? false,
     }),
     { headers: corsHeaders }
   );
