@@ -11,7 +11,7 @@ namespace Schedulys.App;
 
 public static class UpdateChecker
 {
-    public const string CurrentVersion = "1.7";
+    public const string CurrentVersion = "1.8";
 
     private const string ApiUrl = "https://api.github.com/repos/redmik0909/Schedulys/releases/latest";
 
@@ -53,22 +53,15 @@ public static class UpdateChecker
         }
     }
 
-    private static async Task DownloadAndInstallAsync(string url, string version)
+    private static Task DownloadAndInstallAsync(string url, string version)
     {
-        var tempPath = Path.Combine(Path.GetTempPath(), $"Schedulys-Setup-v{version}.exe");
-
         MessageBox.Show(
-            "Téléchargement en cours...\nL'installateur se lancera automatiquement.",
-            "Mise à jour",
+            $"Le téléchargement va s'ouvrir dans votre navigateur.\n\nUne fois le fichier téléchargé, lancez-le pour installer Schedulys v{version}.",
+            "Mise à jour — v" + version,
             MessageBoxButton.OK,
             MessageBoxImage.Information);
 
-        using var http = new HttpClient();
-        http.DefaultRequestHeaders.Add("User-Agent", "Schedulys-App");
-        var bytes = await http.GetByteArrayAsync(url);
-        await File.WriteAllBytesAsync(tempPath, bytes);
-
-        Process.Start(new ProcessStartInfo(tempPath) { UseShellExecute = true });
-        Application.Current.Shutdown();
+        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        return Task.CompletedTask;
     }
 }
