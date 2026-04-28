@@ -12,7 +12,7 @@ namespace Schedulys.App;
 
 public static class UpdateChecker
 {
-    public const string CurrentVersion = "2.2";
+    public const string CurrentVersion = "2.3";
 
     private const string VersionUrl  = "https://kwdykfxrgiqqeskkogta.supabase.co/storage/v1/object/public/releases/version.txt";
     private const string DownloadUrl = "https://github.com/redmik0909/Schedulys/releases/latest/download/Schedulys-Setup-latest.exe";
