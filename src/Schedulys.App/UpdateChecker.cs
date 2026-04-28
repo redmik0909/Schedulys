@@ -2,6 +2,8 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -14,21 +16,25 @@ public static class UpdateChecker
 {
     public const string CurrentVersion = "2.3";
 
-    private const string VersionUrl  = "https://kwdykfxrgiqqeskkogta.supabase.co/storage/v1/object/public/releases/version.txt";
-    private const string DownloadUrl = "https://github.com/redmik0909/Schedulys/releases/latest/download/Schedulys-Setup-latest.exe";
+    private const string Repo        = "redmik0909/Schedulys";
+    private const string ApiUrl      = $"https://api.github.com/repos/{Repo}/releases/latest";
+    private const string DownloadUrl = $"https://github.com/{Repo}/releases/latest/download/Schedulys-Setup-latest.exe";
 
-    private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(10) };
+    private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(15) };
 
     static UpdateChecker()
     {
         _http.DefaultRequestHeaders.Add("User-Agent", "Schedulys-App");
+        _http.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
     }
 
     public static async Task CheckAndPromptAsync()
     {
         try
         {
-            var latest = (await _http.GetStringAsync(VersionUrl)).Trim();
+            var release = await _http.GetFromJsonAsync<GhRelease>(ApiUrl);
+            var latest  = release?.TagName?.TrimStart('v').Trim();
+            if (string.IsNullOrEmpty(latest)) return;
 
             if (!Version.TryParse(latest, out var latestVer)) return;
             if (!Version.TryParse(CurrentVersion, out var current)) return;
@@ -155,5 +161,10 @@ public static class UpdateChecker
         win.RegisterName(lbl.Name, lbl);
 
         return win;
+    }
+
+    private sealed class GhRelease
+    {
+        [JsonPropertyName("tag_name")] public string? TagName { get; set; }
     }
 }
