@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using Microsoft.Data.Sqlite;
 using Sentry;
 using Schedulys.Data;
 using Schedulys.Data.Db;
@@ -33,24 +34,11 @@ public partial class App : Application
             "Schedulys");
         AppLogger.Init(appData);
 
-        var logPath = Path.Combine(appData, "crash.log");
-
-        void LogException(Exception ex, string source)
-        {
-            try
-            {
-                var msg = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {source}\n{ex}\n\n";
-                File.AppendAllText(logPath, msg);
-            }
-            catch { }
-        }
-
         DispatcherUnhandledException += (_, args) =>
         {
-            LogException(args.Exception, "DispatcherUnhandledException");
             AppLogger.Error("DISPATCHER", "Exception non gérée", args.Exception);
             MessageBox.Show(
-                $"{args.Exception.GetType().Name}: {args.Exception.Message}\n\nLog: {logPath}",
+                $"{args.Exception.GetType().Name}: {args.Exception.Message}\n\nLog: {AppLogger.LogPath}",
                 "Erreur inattendue", MessageBoxButton.OK, MessageBoxImage.Error);
             args.Handled = true;
         };
@@ -58,15 +46,11 @@ public partial class App : Application
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
             if (args.ExceptionObject is Exception ex)
-            {
-                LogException(ex, "AppDomain.UnhandledException");
                 AppLogger.Error("APPDOMAIN", "Exception non gérée", ex);
-            }
         };
 
         TaskScheduler.UnobservedTaskException += (_, args) =>
         {
-            LogException(args.Exception, "UnobservedTaskException");
             AppLogger.Error("TASK", "Tâche async non observée", args.Exception);
             args.SetObserved();
         };
@@ -122,11 +106,36 @@ public partial class App : Application
         }
 
         // ── Démarrage normal ─────────────────────────────────────────────
-        var dbPath = Path.Combine(appData, "data.db");
+        var dbPath    = Path.Combine(appData, "data.db");
+        var backupDir = Path.Combine(appData, "backups");
 
         AppLogger.Info("STARTUP", $"=== Schedulys v{UpdateChecker.CurrentVersion} démarré ===");
         AppLogger.Info("STARTUP", $"École : {License?.SchoolName ?? "inconnue"} | Licence expire : {License?.ExpiresAt:yyyy-MM-dd}");
         AppLogger.Info("STARTUP", $"DB : {dbPath} | Existe : {File.Exists(dbPath)} | Taille : {(File.Exists(dbPath) ? $"{new FileInfo(dbPath).Length / 1024.0:F1} KB" : "N/A")}");
+
+        // Détection de base de données manquante avec backups disponibles
+        if (!File.Exists(dbPath) && Directory.Exists(backupDir))
+        {
+            var latestBackup = Directory.GetFiles(backupDir, "data_*.db")
+                                        .OrderByDescending(f => f)
+                                        .FirstOrDefault();
+            if (latestBackup is not null)
+            {
+                AppLogger.Error("STARTUP", $"data.db manquante — backup trouvé : {latestBackup}");
+                var res = MessageBox.Show(
+                    $"La base de données est introuvable.\n\n" +
+                    $"Une sauvegarde du {Path.GetFileNameWithoutExtension(latestBackup).Replace("data_", "")} est disponible.\n\n" +
+                    "Restaurer depuis cette sauvegarde ?\n(Non = démarrer avec une base vide)",
+                    "Base de données manquante",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+                if (res == MessageBoxResult.Yes)
+                {
+                    File.Copy(latestBackup, dbPath);
+                    AppLogger.Warn("RESTORE", $"Base restaurée depuis : {Path.GetFileName(latestBackup)}");
+                }
+            }
+        }
 
         BackupDatabase(dbPath, appData);
 
@@ -157,7 +166,14 @@ public partial class App : Application
 
             var stamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
             var dest  = Path.Combine(backupDir, $"data_{stamp}.db");
-            File.Copy(dbPath, dest, overwrite: false);
+
+            // API SQLite native — checkpoint WAL + copie cohérente, safe sur une DB ouverte
+            using var src = new SqliteConnection($"Data Source={dbPath}");
+            src.Open();
+            using var bak = new SqliteConnection($"Data Source={dest}");
+            bak.Open();
+            src.BackupDatabase(bak);
+
             AppLogger.Info("BACKUP", $"Sauvegarde créée : {dest}");
 
             var files = Directory.GetFiles(backupDir, "data_*.db")

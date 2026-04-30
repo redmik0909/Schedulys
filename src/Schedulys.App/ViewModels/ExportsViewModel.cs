@@ -295,11 +295,13 @@ public sealed partial class ExportsViewModel : ViewModelBase
                 var roles = await _db.RolesSurveillance.ListBySessionAsync(s.Id);
                 foreach (var r in roles)
                 {
-                    var surv = profs.FirstOrDefault(p => p.Id == r.SurveillantId)?.Nom ?? "—";
-                    var loc  = r.Local ?? "—";
+                    var surv  = profs.FirstOrDefault(p => p.Id == r.SurveillantId)?.Nom ?? "—";
+                    var plage = (!string.IsNullOrWhiteSpace(r.HeureDebut) && !string.IsNullOrWhiteSpace(r.HeureFin))
+                        ? $"{r.HeureDebut}-{r.HeureFin}"
+                        : "—";
                     sb.AppendLine(string.Join(";",
                         s.Date, jour, periode, s.HeureDebut,
-                        Esc(r.TypeRole), "—", "—", Esc(surv), Esc(loc),
+                        Esc(r.TypeRole), "—", "—", Esc(surv), Esc(plage),
                         "—", r.DureeMinutes, "—", "Surveillance"));
                     totalRoles++;
                 }

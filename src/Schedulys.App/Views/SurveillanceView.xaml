@@ -17,18 +17,16 @@
         <StackPanel>
           <TextBlock Text="Assigner un rôle" Style="{StaticResource CardTitle}"/>
 
-          <TextBlock Text="SESSION" Style="{StaticResource FieldLabel}"/>
-          <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                    ItemsSource="{Binding SessionsDisponibles}"
-                    SelectedItem="{Binding SessionSelectionnee}"
-                    DisplayMemberPath="Label"
-                    md:HintAssist.Hint="— sélectionner —"
-                    Margin="0,0,0,12"/>
+          <TextBlock Text="DATE" Style="{StaticResource FieldLabel}"/>
+          <DatePicker Style="{StaticResource MaterialDesignDatePicker}"
+                      SelectedDate="{Binding DateRole}"
+                      Margin="0,0,0,12"/>
 
-          <TextBlock Text="TYPE DE RÔLE" Style="{StaticResource FieldLabel}"/>
+          <TextBlock Text="ZONE DE SURVEILLANCE" Style="{StaticResource FieldLabel}"/>
           <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                    ItemsSource="{x:Static vm:SurveillanceViewModel.TypesRole}"
+                    ItemsSource="{Binding ZonesDisponibles}"
                     SelectedItem="{Binding TypeRoleInput}"
+                    md:HintAssist.Hint="— sélectionner —"
                     Margin="0,0,0,12"/>
 
           <TextBlock Text="SURVEILLANT" Style="{StaticResource FieldLabel}"/>
@@ -39,17 +37,40 @@
                     md:HintAssist.Hint="— sélectionner —"
                     Margin="0,0,0,12"/>
 
-          <TextBlock Text="LOCAL (OPTIONNEL)" Style="{StaticResource FieldLabel}"/>
-          <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                   md:HintAssist.Hint="Ex : 102"
-                   Text="{Binding LocalInput, UpdateSourceTrigger=PropertyChanged}"
-                   Margin="0,0,0,12"/>
+          <Grid Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="8"/>
+              <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+              <TextBlock Text="HEURE DÉBUT" Style="{StaticResource FieldLabel}"/>
+              <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                       md:HintAssist.Hint="08:30"
+                       Text="{Binding HeureDebutInput, UpdateSourceTrigger=PropertyChanged}"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="HEURE FIN" Style="{StaticResource FieldLabel}"/>
+              <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                       md:HintAssist.Hint="11:30"
+                       Text="{Binding HeureFinInput, UpdateSourceTrigger=PropertyChanged}"/>
+            </StackPanel>
+          </Grid>
 
-          <TextBlock Text="DURÉE (MINUTES)" Style="{StaticResource FieldLabel}"/>
-          <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                   md:HintAssist.Hint="Ex : 90"
-                   Text="{Binding DureeInput, UpdateSourceTrigger=PropertyChanged}"
-                   Margin="0,0,0,16"/>
+          <TextBlock Text="{Binding PlageCalculee}"
+                     Foreground="{StaticResource AppTextSub}"
+                     FontSize="11" Margin="0,0,0,16">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Visible"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding PlageCalculee}" Value="">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
 
           <Button Content="Ajouter" Command="{Binding AjouterRoleCommand}"
                   Style="{StaticResource BtnPrimary}"
@@ -100,9 +121,9 @@
 
       <!-- Liste groupée par session -->
       <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-        <ItemsControl ItemsSource="{Binding GroupesParSession}">
+        <ItemsControl ItemsSource="{Binding GroupesParJour}">
           <ItemsControl.ItemTemplate>
-            <DataTemplate DataType="{x:Type vm:SessionSurveillanceGroup}">
+            <DataTemplate DataType="{x:Type vm:JourSurveillanceGroup}">
               <StackPanel Margin="0,0,0,16">
 
                 <Border Background="{StaticResource AppAccentLight}"
@@ -160,7 +181,7 @@
           <Style TargetType="Border">
             <Setter Property="Visibility" Value="Collapsed"/>
             <Style.Triggers>
-              <DataTrigger Binding="{Binding GroupesParSession.Count}" Value="0">
+              <DataTrigger Binding="{Binding GroupesParJour.Count}" Value="0">
                 <Setter Property="Visibility" Value="Visible"/>
               </DataTrigger>
             </Style.Triggers>

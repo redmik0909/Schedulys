@@ -10,6 +10,8 @@ public static class AppLogger
     private static bool   _sentryReady;
     private static readonly object _lock = new();
 
+    public static string LogPath => _logPath;
+
     public static void Init(string appDataDir)
     {
         try

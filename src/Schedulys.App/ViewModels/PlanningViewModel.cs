@@ -44,16 +44,23 @@ public sealed class RoleSurveillanceDisplay(RoleSurveillance role, string survei
     public string           Surveillant { get; } = surveillant;
 
     public string Ligne1 => Role.TypeRole;
-    public string Ligne2 => string.IsNullOrWhiteSpace(Role.Local)
-        ? $"{Surveillant}  ·  {Role.DureeMinutes} min"
-        : $"{Surveillant}  ·  Local {Role.Local}  ·  {Role.DureeMinutes} min";
+    public string Ligne2
+    {
+        get
+        {
+            var plage = (!string.IsNullOrWhiteSpace(Role.HeureDebut) && !string.IsNullOrWhiteSpace(Role.HeureFin))
+                ? $"{Role.HeureDebut}–{Role.HeureFin}  ({Role.DureeMinutes} min)"
+                : $"{Role.DureeMinutes} min";
+            return $"{Surveillant}  ·  {plage}";
+        }
+    }
 }
 
 public sealed partial class GroupeFormItem : ObservableObject
 {
     public Classe                    Classe                  { get; }
-    public ObservableCollection<Salle> SallesDisponibles     { get; } = new();
-    public IReadOnlyList<Prof>       SurveillantsDisponibles { get; }
+    public ObservableCollection<Salle> SallesDisponibles        { get; } = new();
+    public ObservableCollection<Prof> SurveillantsDisponibles  { get; } = new();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AvertissementSalle))]
@@ -76,11 +83,11 @@ public sealed partial class GroupeFormItem : ObservableObject
         }
     }
 
-    public GroupeFormItem(Classe classe, IEnumerable<Salle> salles, IReadOnlyList<Prof> profs)
+    public GroupeFormItem(Classe classe, IEnumerable<Salle> salles, IEnumerable<Prof> profs)
     {
         Classe = classe;
         foreach (var s in salles) SallesDisponibles.Add(s);
-        SurveillantsDisponibles = profs;
+        foreach (var p in profs) SurveillantsDisponibles.Add(p);
     }
 }
 
@@ -209,16 +216,13 @@ public sealed partial class PlanningViewModel : ViewModelBase
     partial void OnSessionSelectionneeChanged(SessionDisplay? value)
     {
         foreach (var s in Sessions) s.IsSelected = (s == value);
+        EpreuveSelectionnee = null;   // remet le formulaire à zéro pour la nouvelle session
         if (value is not null) OngletActif = 1;
     }
 
     [ObservableProperty] private int _ongletActif = 0;
 
     [ObservableProperty] private Core.Models.Epreuve? _epreuveSelectionnee;
-    [ObservableProperty] private Prof?              _surveillantSelectionne;
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AvertissementSalle))]
-    private Salle? _salleSelectionnee;
     [ObservableProperty] private string  _heureFinInput      = "11:30";
     [ObservableProperty] private string  _premierDepartInput = "10:30";
     [ObservableProperty] private bool    _tiersTemps;
@@ -226,35 +230,10 @@ public sealed partial class PlanningViewModel : ViewModelBase
 
     public IReadOnlyList<string> TypesGroupe { get; } = new[] { "Standard", "SAI", "EHDAA" };
 
-    public string AvertissementSalle
-    {
-        get
-        {
-            if (SalleSelectionnee is null) return "";
-            var total = ClassesGroupe.Sum(c => c.Effectif);
-            if (total <= 0) return "";
-            if (SalleSelectionnee.Capacite < total)
-                return $"⚠ La salle {SalleSelectionnee.Nom} n'a que {SalleSelectionnee.Capacite} place(s) pour {total} élève(s).";
-            return "";
-        }
-    }
-
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(QuotaDepasseVisible))]
     private string _quotaDepasseMessage = "";
     public bool QuotaDepasseVisible => !string.IsNullOrEmpty(QuotaDepasseMessage);
-
-    // ── Formulaire: Nouveau rôle de surveillance ─────────────────────────────
-    [ObservableProperty] private string  _typeRoleInput       = "Surveillance 1er étage";
-    [ObservableProperty] private Prof?   _surveillantRoleSelectionne;
-    [ObservableProperty] private string  _localRoleInput      = "";
-    [ObservableProperty] private string  _dureeRoleInput      = "90";
-
-    public IReadOnlyList<string> TypesRole { get; } = new[]
-    {
-        "Surveillance 1er étage", "Surveillance 3e étage",
-        "Surveillance bibliothèque SAI", "Disponibilités et pauses"
-    };
 
     [ObservableProperty] private string _messageErreur = "";
 
@@ -312,18 +291,28 @@ public sealed partial class PlanningViewModel : ViewModelBase
     private void ClearGroupeFormItems()
     {
         foreach (var item in GroupeFormItems)
-            item.PropertyChanged -= OnGroupeItemSalleChanged;
+            item.PropertyChanged -= OnGroupeItemPropertyChanged;
         GroupeFormItems.Clear();
     }
 
-    private void OnGroupeItemSalleChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    private void OnGroupeItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(GroupeFormItem.SalleSelectionnee))
             ActualiserSallesDisponibles();
+        else if (e.PropertyName == nameof(GroupeFormItem.SurveillantSelectionne))
+            ActualiserSurveillantsDisponibles();
     }
+
+    private bool _actualisationEnCours = false;
 
     private void ActualiserSallesDisponibles()
     {
+        if (_actualisationEnCours) return;
+        _actualisationEnCours = true;
+
+        foreach (var item in GroupeFormItems)
+            item.PropertyChanged -= OnGroupeItemPropertyChanged;
+
         var prises = GroupeFormItems
             .Where(i => i.SalleSelectionnee is not null)
             .Select(i => i.SalleSelectionnee!.Id)
@@ -331,14 +320,70 @@ public sealed partial class PlanningViewModel : ViewModelBase
 
         foreach (var item in GroupeFormItems)
         {
-            var selection = item.SalleSelectionnee;
+            var selId = item.SalleSelectionnee?.Id;
             item.SallesDisponibles.Clear();
             foreach (var s in _sallesCache)
             {
-                if (!prises.Contains(s.Id) || s.Id == selection?.Id)
+                if (!prises.Contains(s.Id) || s.Id == selId)
                     item.SallesDisponibles.Add(s);
             }
+            // Restaurer la sélection (même objet de _sallesCache, pas de null parasite)
+            item.SalleSelectionnee = selId.HasValue
+                ? item.SallesDisponibles.FirstOrDefault(s => s.Id == selId)
+                : null;
         }
+
+        foreach (var item in GroupeFormItems)
+            item.PropertyChanged += OnGroupeItemPropertyChanged;
+
+        _actualisationEnCours = false;
+    }
+
+    private void ActualiserSurveillantsDisponibles()
+    {
+        if (_actualisationEnCours) return;
+        _actualisationEnCours = true;
+
+        foreach (var item in GroupeFormItems)
+            item.PropertyChanged -= OnGroupeItemPropertyChanged;
+
+        // Surveillants déjà sélectionnés dans le formulaire (tous les items)
+        var prisForm = GroupeFormItems
+            .Where(i => i.SurveillantSelectionne is not null)
+            .Select(i => i.SurveillantSelectionne!.Id)
+            .ToHashSet();
+
+        // Surveillants déjà sauvegardés dans la session en cours
+        var prisSession = new HashSet<int>();
+        if (SessionSelectionnee is not null)
+        {
+            foreach (var g in SessionSelectionnee.Groupes)
+                if (g.Groupe.SurveillantId.HasValue) prisSession.Add(g.Groupe.SurveillantId.Value);
+            foreach (var r in SessionSelectionnee.Roles)
+                prisSession.Add(r.Role.SurveillantId);
+        }
+
+        foreach (var item in GroupeFormItems)
+        {
+            var selId = item.SurveillantSelectionne?.Id;
+            item.SurveillantsDisponibles.Clear();
+            foreach (var p in _profsCache)
+            {
+                bool reserveAutreItem = prisForm.Contains(p.Id) && p.Id != selId;
+                bool reserveSession   = prisSession.Contains(p.Id);
+                if (!reserveAutreItem && !reserveSession)
+                    item.SurveillantsDisponibles.Add(p);
+            }
+            // Restaurer la sélection
+            item.SurveillantSelectionne = selId.HasValue
+                ? item.SurveillantsDisponibles.FirstOrDefault(p => p.Id == selId)
+                : null;
+        }
+
+        foreach (var item in GroupeFormItems)
+            item.PropertyChanged += OnGroupeItemPropertyChanged;
+
+        _actualisationEnCours = false;
     }
 
     private async Task LoadClassesGroupeAsync(Core.Models.Epreuve epreuve)
@@ -354,9 +399,10 @@ public sealed partial class PlanningViewModel : ViewModelBase
         {
             ClassesGroupe.Add(c);
             var item = new GroupeFormItem(c, salles, profs);
-            item.PropertyChanged += OnGroupeItemSalleChanged;
+            item.PropertyChanged += OnGroupeItemPropertyChanged;
             GroupeFormItems.Add(item);
         }
+        ActualiserSurveillantsDisponibles();
     }
 
     partial void OnTiersTempsChanged(bool value) => MettreAJourHeureFin();
@@ -403,7 +449,7 @@ public sealed partial class PlanningViewModel : ViewModelBase
         var epreuves = _epreuvesCache.Count > 0 ? _epreuvesCache : await _db.Epreuves.ListAsync();
         var classes  = _classesCache.Count  > 0 ? _classesCache  : await _db.Classes.ListAsync();
 
-        var savedId  = SessionSelectionnee?.Session.Id;
+        var savedId = SessionSelectionnee?.Session.Id;
         Sessions.Clear();
         JoursDeSemaine.Clear();
 
@@ -420,11 +466,19 @@ public sealed partial class PlanningViewModel : ViewModelBase
 
         var debut = SemaineDebut;
         var fin   = SemaineDebut.AddDays(4);
+
+        // Chargement batch : 3 requêtes pour toute la semaine au lieu de 2×N
         var allSessions = await _db.Sessions.ListByPeriodeAsync(debut, fin);
+        var allGroupes  = await _db.GroupesExamen.ListByPeriodeAsync(debut, fin);
+        var allRoles    = await _db.RolesSurveillance.ListByPeriodeAsync(debut, fin);
+
+        var groupesParSession = allGroupes.ToLookup(g => g.SessionId);
+        var rolesParSession   = allRoles.ToLookup(r => r.SessionId);
 
         foreach (var s in allSessions)
         {
-            var sd = await BuildSessionDisplayAsync(s, profs, salles, epreuves, classes);
+            var sd = BuildSessionDisplay(s, profs, salles, epreuves, classes,
+                groupesParSession[s.Id], rolesParSession[s.Id]);
 
             var jour = JoursDeSemaine.FirstOrDefault(j =>
                 j.Date.ToString("yyyy-MM-dd") == s.Date);
@@ -440,15 +494,16 @@ public sealed partial class PlanningViewModel : ViewModelBase
             SessionSelectionnee = Sessions.FirstOrDefault(x => x.Session.Id == savedId);
     }
 
-    private async Task<SessionDisplay> BuildSessionDisplayAsync(
+    private static SessionDisplay BuildSessionDisplay(
         Session s,
-        IReadOnlyList<Prof>   profs,
-        IReadOnlyList<Salle>  salles,
+        IReadOnlyList<Prof>              profs,
+        IReadOnlyList<Salle>             salles,
         IReadOnlyList<Core.Models.Epreuve> epreuves,
-        IReadOnlyList<Classe> classes)
+        IReadOnlyList<Classe>            classes,
+        IEnumerable<GroupeExamen>        groupes,
+        IEnumerable<RoleSurveillance>    roles)
     {
-        var sd      = new SessionDisplay(s);
-        var groupes = await _db.GroupesExamen.ListBySessionAsync(s.Id);
+        var sd = new SessionDisplay(s);
 
         foreach (var g in groupes)
         {
@@ -468,13 +523,12 @@ public sealed partial class PlanningViewModel : ViewModelBase
 
             var ens = profs.FirstOrDefault(p => p.Id == g.EnseignantId);
             var sur = g.SurveillantId.HasValue ? profs.FirstOrDefault(p => p.Id == g.SurveillantId) : null;
-            var sal = g.SalleId.HasValue      ? salles.FirstOrDefault(x => x.Id == g.SalleId)       : null;
+            var sal = g.SalleId.HasValue       ? salles.FirstOrDefault(x => x.Id == g.SalleId)      : null;
 
             sd.Groupes.Add(new GroupeExamenDisplay(g, description,
                 ens?.Nom ?? "—", sur?.Nom ?? "—", sal?.Nom ?? "—", s.HeureDebut));
         }
 
-        var roles = await _db.RolesSurveillance.ListBySessionAsync(s.Id);
         foreach (var r in roles)
         {
             var sur = profs.FirstOrDefault(p => p.Id == r.SurveillantId);
@@ -643,8 +697,17 @@ public sealed partial class PlanningViewModel : ViewModelBase
             return;
         }
 
-        var groupesExistants = await _db.GroupesExamen.ListBySessionAsync(SessionSelectionnee.Session.Id);
-        var rolesExistants   = await _db.RolesSurveillance.ListBySessionAsync(SessionSelectionnee.Session.Id);
+        // Données de la session sélectionnée déjà en mémoire — pas de requête DB
+        var groupesExistants = SessionSelectionnee.Groupes.Select(d => d.Groupe).ToList();
+        var rolesExistants   = SessionSelectionnee.Roles.Select(d => d.Role).ToList();
+
+        // Pré-chargement batch des quotas et minutes avant la boucle de validation
+        var allQuotas = !forcerQuota
+            ? await _db.Quotas.ListAsync(AppConstants.AnneeScolaire)
+            : System.Array.Empty<QuotaMinutes>();
+        var minutesParProf = !forcerQuota && DateOnly.TryParse(SessionSelectionnee.Session.Date, out var datePrechargee)
+            ? await _db.GroupesExamen.GetMinutesAssigneesByProfAsync(datePrechargee)
+            : new Dictionary<int, int>();
 
         foreach (var item in GroupeFormItems.Where(i => i.SurveillantSelectionne is not null))
         {
@@ -660,17 +723,17 @@ public sealed partial class PlanningViewModel : ViewModelBase
                 return;
             }
 
-            if (!forcerQuota && DateOnly.TryParse(SessionSelectionnee.Session.Date, out var dateSurv))
+            if (!forcerQuota && DateOnly.TryParse(SessionSelectionnee.Session.Date, out _))
             {
                 var jourCycle = SessionSelectionnee.Session.JourCycle;
-                var quota = jourCycle > 0
-                    ? await _db.Quotas.GetByProfAsync(surv.Id, jourCycle, AppConstants.AnneeScolaire)
-                    : null;
-                quota ??= await _db.Quotas.GetByProfAsync(surv.Id, 0, AppConstants.AnneeScolaire);
+                var quota = (jourCycle > 0
+                    ? allQuotas.FirstOrDefault(q => q.ProfId == surv.Id && q.JourCycle == jourCycle)
+                    : null)
+                    ?? allQuotas.FirstOrDefault(q => q.ProfId == surv.Id && q.JourCycle == 0);
 
                 if (quota?.MinutesMax > 0)
                 {
-                    var minutesDejaAssignees = await _db.GroupesExamen.GetMinutesAssigneesAsync(surv.Id, dateSurv);
+                    var minutesDejaAssignees = minutesParProf.TryGetValue(surv.Id, out var m) ? m : 0;
                     var total = minutesDejaAssignees + dureeMinutes;
                     if (total > quota.MinutesMax)
                     {
@@ -698,7 +761,7 @@ public sealed partial class PlanningViewModel : ViewModelBase
                     SalleId       = item.SalleSelectionnee?.Id,
                     TiersTemps    = TiersTemps,
                     DureeMinutes  = dureeMinutes,
-                    Type          = "Standard",
+                    Type          = TypeGroupe,
                     HeureFin      = HeureFinInput.Trim(),
                     PremierDepart = PremierDepartInput.Trim()
                 };
@@ -715,10 +778,6 @@ public sealed partial class PlanningViewModel : ViewModelBase
 
         QuotaDepasseMessage = "";
         EpreuveSelectionnee = null;
-        ClearGroupeFormItems();
-        ClassesGroupe.Clear();
-        HeureFinInput       = "11:30";
-        PremierDepartInput  = "10:30";
 
         await LoadSessionsAsync();
         await LoadMinutesAsync();
@@ -732,63 +791,6 @@ public sealed partial class PlanningViewModel : ViewModelBase
         if (gd is null) return;
         AppLogger.Warn("DATA", $"Suppression GroupeExamen Id={gd.Groupe.Id} Code={gd.Groupe.CodeGroupe}");
         await _db.GroupesExamen.DeleteAsync(gd.Groupe.Id);
-        await LoadSessionsAsync();
-        await LoadMinutesAsync();
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    //  Ajouter un rôle de surveillance à la session sélectionnée
-    // ─────────────────────────────────────────────────────────────────────────
-
-    [RelayCommand]
-    private async Task AjouterRoleAsync()
-    {
-        MessageErreur = "";
-
-        if (SessionSelectionnee is null)            { MessageErreur = "Sélectionnez une session."; return; }
-        if (SurveillantRoleSelectionne is null)     { MessageErreur = "Sélectionnez un surveillant."; return; }
-        if (!int.TryParse(DureeRoleInput, out var duree) || duree <= 0)
-                                                     { MessageErreur = "Durée invalide (en minutes)."; return; }
-
-        // Vérifier conflit dans la même session
-        var groupesExistantsR = await _db.GroupesExamen.ListBySessionAsync(SessionSelectionnee.Session.Id);
-        var rolesExistantsR   = await _db.RolesSurveillance.ListBySessionAsync(SessionSelectionnee.Session.Id);
-
-        if (groupesExistantsR.Any(g => g.SurveillantId == SurveillantRoleSelectionne.Id))
-        {
-            MessageErreur = $"{SurveillantRoleSelectionne.Nom} surveille déjà un groupe dans cette session.";
-            return;
-        }
-        if (rolesExistantsR.Any(r => r.SurveillantId == SurveillantRoleSelectionne.Id))
-        {
-            MessageErreur = $"{SurveillantRoleSelectionne.Nom} a déjà un rôle de surveillance dans cette session.";
-            return;
-        }
-
-        var role = new RoleSurveillance
-        {
-            SessionId     = SessionSelectionnee.Session.Id,
-            TypeRole      = TypeRoleInput,
-            SurveillantId = SurveillantRoleSelectionne.Id,
-            Local         = string.IsNullOrWhiteSpace(LocalRoleInput) ? null : LocalRoleInput.Trim(),
-            DureeMinutes  = duree
-        };
-
-        await _db.RolesSurveillance.CreateAsync(role);
-
-        SurveillantRoleSelectionne = null;
-        LocalRoleInput             = "";
-        DureeRoleInput             = "90";
-
-        await LoadSessionsAsync();
-        await LoadMinutesAsync();
-    }
-
-    [RelayCommand]
-    private async Task SupprimerRoleAsync(RoleSurveillanceDisplay? rd)
-    {
-        if (rd is null) return;
-        await _db.RolesSurveillance.DeleteAsync(rd.Role.Id);
         await LoadSessionsAsync();
         await LoadMinutesAsync();
     }

@@ -32,13 +32,37 @@ public static class UpdateChecker
     {
         try
         {
+            AppLogger.Info("UPDATE", $"Vérification des mises à jour (version actuelle : {CurrentVersion})...");
+
             var release = await _http.GetFromJsonAsync<GhRelease>(ApiUrl);
             var latest  = release?.TagName?.TrimStart('v').Trim();
-            if (string.IsNullOrEmpty(latest)) return;
 
-            if (!Version.TryParse(latest, out var latestVer)) return;
-            if (!Version.TryParse(CurrentVersion, out var current)) return;
-            if (latestVer <= current) return;
+            if (string.IsNullOrEmpty(latest))
+            {
+                AppLogger.Warn("UPDATE", "Réponse GitHub vide ou tag_name absent.");
+                return;
+            }
+
+            AppLogger.Info("UPDATE", $"Dernière version GitHub : {latest}");
+
+            if (!Version.TryParse(latest, out var latestVer))
+            {
+                AppLogger.Warn("UPDATE", $"Impossible de parser la version GitHub : '{latest}'");
+                return;
+            }
+            if (!Version.TryParse(CurrentVersion, out var current))
+            {
+                AppLogger.Warn("UPDATE", $"Impossible de parser la version actuelle : '{CurrentVersion}'");
+                return;
+            }
+
+            if (latestVer <= current)
+            {
+                AppLogger.Info("UPDATE", $"Aucune mise à jour disponible ({current} >= {latestVer}).");
+                return;
+            }
+
+            AppLogger.Info("UPDATE", $"Mise à jour disponible : {current} → {latestVer}");
 
             var result = MessageBox.Show(
                 $"Une nouvelle version est disponible : v{latest}\n\nVoulez-vous la télécharger et l'installer maintenant ?",
@@ -50,9 +74,9 @@ public static class UpdateChecker
 
             await DownloadAndInstallAsync(DownloadUrl, latest);
         }
-        catch
+        catch (Exception ex)
         {
-            // Silencieux — pas de connexion ou serveur indisponible
+            AppLogger.Error("UPDATE", "Vérification de mise à jour échouée", ex);
         }
     }
 
@@ -62,6 +86,7 @@ public static class UpdateChecker
         progressWin.Show();
 
         var tmpPath = Path.Combine(Path.GetTempPath(), $"Schedulys-Setup-v{version}.exe");
+        AppLogger.Info("UPDATE", $"Téléchargement vers : {tmpPath}");
 
         try
         {
@@ -74,7 +99,10 @@ public static class UpdateChecker
             var lbl      = (TextBlock)progressWin.FindName("StatusLabel");
 
             if (total.HasValue)
+            {
                 bar.IsIndeterminate = false;
+                AppLogger.Info("UPDATE", $"Taille du fichier : {total.Value / 1024.0 / 1024.0:F1} MB");
+            }
 
             await using var src  = await response.Content.ReadAsStreamAsync(cts.Token);
             await using var dest = File.Create(tmpPath);
@@ -94,6 +122,7 @@ public static class UpdateChecker
                 }
             }
 
+            AppLogger.Info("UPDATE", $"Téléchargement terminé — {received / 1024.0 / 1024.0:F1} MB reçus.");
             progressWin.Close();
             Process.Start(new ProcessStartInfo(tmpPath) { UseShellExecute = true });
 
@@ -102,6 +131,7 @@ public static class UpdateChecker
         }
         catch (Exception ex)
         {
+            AppLogger.Error("UPDATE", "Téléchargement de la mise à jour échoué", ex);
             progressWin.Close();
             MessageBox.Show(
                 $"Le téléchargement a échoué :\n{ex.Message}\n\nVeuillez télécharger manuellement depuis GitHub.",

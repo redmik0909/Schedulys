@@ -443,6 +443,20 @@
             <Style TargetType="Border">
               <Setter Property="Visibility" Value="Collapsed"/>
               <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedNavItem.Section}" Value="parametres">
+                  <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <views:ParametresView DataContext="{Binding Parametres}"/>
+        </Border>
+
+        <Border>
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers>
                 <DataTrigger Binding="{Binding SelectedNavItem.Section}" Value="licence">
                   <Setter Property="Visibility" Value="Visible"/>
                 </DataTrigger>

@@ -11,9 +11,36 @@ public static class SchemaInitializer
     using var cn = factory.Create();
     await cn.OpenAsync();
 
-    log?.Invoke("Connexion ouverte, FK désactivées.");
-    // Désactiver FK pendant toutes les migrations (Microsoft.Data.Sqlite 8+ les active par défaut)
+    log?.Invoke("Connexion ouverte.");
+    // WAL : meilleure résistance aux crashs, lectures concurrentes sans blocage
+    await cn.ExecuteAsync("PRAGMA journal_mode=WAL;");
+    // FK désactivées pendant les migrations (Microsoft.Data.Sqlite 8+ les active par défaut)
     await cn.ExecuteAsync("PRAGMA foreign_keys = OFF;");
+
+    // Récupération des tables orphelines issues d'une migration interrompue par un crash
+    foreach (var baseName in new[] { "GroupesExamen", "Epreuves", "QuotasMinutes" })
+    {
+        var oldName  = $"{baseName}_old";
+        var oldExist = await cn.ExecuteScalarAsync<long>(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=@name", new { name = oldName });
+        if (oldExist == 0) continue;
+
+        var newExist = await cn.ExecuteScalarAsync<long>(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=@name", new { name = baseName });
+
+        if (newExist > 0)
+        {
+            // Migration terminée avant le crash — on nettoie juste la table temporaire
+            log?.Invoke($"Nettoyage table orpheline : DROP {oldName}");
+            await cn.ExecuteAsync($"DROP TABLE {oldName}");
+        }
+        else
+        {
+            // Migration interrompue avant la création de la nouvelle table — on restaure
+            log?.Invoke($"Récupération migration interrompue : RENAME {oldName} → {baseName}");
+            await cn.ExecuteAsync($"ALTER TABLE {oldName} RENAME TO {baseName}");
+        }
+    }
 
     var ddl = @"
 CREATE TABLE IF NOT EXISTS Profs(
@@ -230,6 +257,19 @@ SELECT Id, Nom, ClasseId, DureeMinutes, TiersTemps, Ministerielle, Annee FROM Ep
     // Migration Niveau sur Epreuves
     await AddColumnIfMissing(cn, "Epreuves", "Niveau", "INTEGER NOT NULL DEFAULT 0");
 
+    // Migration RolesSurveillance : ajout plage horaire (remplace Local + DureeMinutes saisi)
+    await AddColumnIfMissing(cn, "RolesSurveillance", "HeureDebut", "TEXT NOT NULL DEFAULT ''");
+    await AddColumnIfMissing(cn, "RolesSurveillance", "HeureFin",   "TEXT NOT NULL DEFAULT ''");
+
+    // Migration RolesSurveillance : Date indépendante de la session
+    await AddColumnIfMissing(cn, "RolesSurveillance", "Date", "TEXT NOT NULL DEFAULT ''");
+    // Backfill : renseigner Date depuis la session liée pour les anciens enregistrements
+    await cn.ExecuteAsync(@"
+        UPDATE RolesSurveillance
+        SET Date = (SELECT s.Date FROM Sessions s WHERE s.Id = RolesSurveillance.SessionId)
+        WHERE Date = '' AND SessionId > 0
+          AND EXISTS (SELECT 1 FROM Sessions s WHERE s.Id = RolesSurveillance.SessionId)");
+
     // Migration JourCycle : Sessions
     await AddColumnIfMissing(cn, "Sessions", "JourCycle", "INTEGER NOT NULL DEFAULT 0");
 
@@ -258,6 +298,27 @@ SELECT Id, ProfId, 0, MinutesMax, AnneeScolaire FROM QuotasMinutes_old;", transa
             "CREATE INDEX IF NOT EXISTS IDX_Quotas_Prof ON QuotasMinutes(ProfId)", transaction: tx);
         tx.Commit();
         log?.Invoke("Migration QuotasMinutes : terminée avec succès.");
+    }
+
+    // Table des zones de surveillance configurables par école
+    await cn.ExecuteAsync(@"
+CREATE TABLE IF NOT EXISTS ZonesSurveillance (
+  Id    INTEGER PRIMARY KEY AUTOINCREMENT,
+  Nom   TEXT    NOT NULL,
+  Ordre INTEGER NOT NULL DEFAULT 0
+);");
+
+    // Seeding des zones par défaut si la table est vide (première installation ou migration)
+    var zoneCount = await cn.ExecuteScalarAsync<long>("SELECT COUNT(*) FROM ZonesSurveillance");
+    if (zoneCount == 0)
+    {
+        log?.Invoke("Insertion des zones de surveillance par défaut.");
+        await cn.ExecuteAsync(@"
+INSERT INTO ZonesSurveillance(Nom, Ordre) VALUES
+  ('Surveillance 1er étage', 1),
+  ('Surveillance 3e étage',  2),
+  ('Surveillance bibliothèque SAI', 3),
+  ('Disponibilités et pauses', 4);");
     }
 
     log?.Invoke("Toutes les migrations terminées.");

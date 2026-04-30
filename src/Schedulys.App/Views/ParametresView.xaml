@@ -1,0 +1,128 @@
+<UserControl x:Class="Schedulys.App.Views.ParametresView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:Schedulys.App.ViewModels"
+             xmlns:models="clr-namespace:Schedulys.Core.Models;assembly=Schedulys.Core">
+
+  <Grid Margin="28,24">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="300"/>
+      <ColumnDefinition Width="20"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+
+    <!-- ── Panneau gauche : formulaire ── -->
+    <StackPanel Grid.Column="0">
+      <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+        <StackPanel>
+          <TextBlock Text="Nouvelle zone" Style="{StaticResource CardTitle}"/>
+
+          <TextBlock Text="NOM DE LA ZONE" Style="{StaticResource FieldLabel}"/>
+          <TextBox md:HintAssist.Hint="Ex : Couloir 2e étage"
+                   Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                   Text="{Binding NomZoneInput, UpdateSourceTrigger=PropertyChanged}"
+                   Margin="0,0,0,16">
+            <TextBox.InputBindings>
+              <KeyBinding Key="Return" Command="{Binding AjouterZoneCommand}"/>
+            </TextBox.InputBindings>
+          </TextBox>
+
+          <Button Content="Ajouter" Command="{Binding AjouterZoneCommand}"
+                  Style="{StaticResource BtnPrimary}"
+                  HorizontalAlignment="Left" Padding="20,0"/>
+        </StackPanel>
+      </Border>
+
+      <Button Content="Supprimer la sélection"
+              Command="{Binding SupprimerZoneCommand}"
+              CommandParameter="{Binding ZoneSelectionnee}"
+              Style="{StaticResource BtnDanger}"
+              HorizontalAlignment="Left"/>
+
+      <TextBlock Text="{Binding Message}" Foreground="{StaticResource AppSuccess}"
+                 FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap">
+        <TextBlock.Style>
+          <Style TargetType="TextBlock">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Message}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </TextBlock.Style>
+      </TextBlock>
+      <TextBlock Text="{Binding Erreur}" Foreground="{StaticResource AppDanger}"
+                 FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap">
+        <TextBlock.Style>
+          <Style TargetType="TextBlock">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Erreur}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </TextBlock.Style>
+      </TextBlock>
+    </StackPanel>
+
+    <!-- ── Colonne droite : liste ── -->
+    <Grid Grid.Column="2">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="12"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+
+      <TextBlock Grid.Row="0" Text="Zones de surveillance" Style="{StaticResource PageTitle}" Margin="0"/>
+
+      <!-- Liste des zones -->
+      <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+          <ItemsControl ItemsSource="{Binding Zones}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="{x:Type models:ZoneSurveillance}">
+                <Border Margin="0,0,0,6" CornerRadius="8" Padding="16,12"
+                        Background="{StaticResource AppSurface}"
+                        BorderBrush="{StaticResource AppBorder}"
+                        BorderThickness="1">
+                  <DockPanel>
+                    <Button DockPanel.Dock="Right"
+                            Content="✕" Style="{StaticResource BtnGhost}"
+                            Height="24" Width="24" Padding="0" FontSize="10"
+                            VerticalAlignment="Center"
+                            Command="{Binding DataContext.SupprimerZoneCommand,
+                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="{Binding}"/>
+                    <TextBlock Text="{Binding Nom}"
+                               FontSize="13" FontWeight="Medium"
+                               Foreground="{StaticResource AppText}"
+                               VerticalAlignment="Center"/>
+                  </DockPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <!-- État vide -->
+          <Border Padding="32,48"
+                  Background="{StaticResource AppSurface}"
+                  BorderBrush="{StaticResource AppBorder}"
+                  BorderThickness="1" CornerRadius="10">
+            <TextBlock Text="Aucune zone configurée. Ajoutez une zone ci-contre."
+                       Foreground="{StaticResource AppTextMuted}"
+                       FontSize="14" HorizontalAlignment="Center" TextAlignment="Center"/>
+            <Border.Style>
+              <Style TargetType="Border">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Zones.Count}" Value="0">
+                    <Setter Property="Visibility" Value="Visible"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Border.Style>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</UserControl>

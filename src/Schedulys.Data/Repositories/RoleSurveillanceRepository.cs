@@ -17,8 +17,8 @@ public sealed class RoleSurveillanceRepository : IRoleSurveillanceRepository
         using var cn = _factory.Create();
         await cn.OpenAsync();
         return (int)await cn.ExecuteScalarAsync<long>(
-            @"INSERT INTO RolesSurveillance(SessionId, TypeRole, SurveillantId, Local, DureeMinutes)
-              VALUES (@SessionId, @TypeRole, @SurveillantId, @Local, @DureeMinutes);
+            @"INSERT INTO RolesSurveillance(SessionId, Date, TypeRole, SurveillantId, HeureDebut, HeureFin, DureeMinutes)
+              VALUES (@SessionId, @Date, @TypeRole, @SurveillantId, @HeureDebut, @HeureFin, @DureeMinutes);
               SELECT last_insert_rowid();", r);
     }
 
@@ -47,13 +47,23 @@ public sealed class RoleSurveillanceRepository : IRoleSurveillanceRepository
             "SELECT * FROM RolesSurveillance ORDER BY SessionId, TypeRole")).AsList();
     }
 
+    public async Task<IReadOnlyList<RoleSurveillance>> ListByPeriodeAsync(DateOnly debut, DateOnly fin)
+    {
+        using var cn = _factory.Create();
+        return (await cn.QueryAsync<RoleSurveillance>(
+            @"SELECT * FROM RolesSurveillance
+              WHERE Date BETWEEN @d0 AND @d1
+              ORDER BY Date, HeureDebut",
+            new { d0 = debut.ToString("yyyy-MM-dd"), d1 = fin.ToString("yyyy-MM-dd") })).AsList();
+    }
+
     public async Task<bool> UpdateAsync(RoleSurveillance r)
     {
         using var cn = _factory.Create();
         await cn.OpenAsync();
         var rows = await cn.ExecuteAsync(
-            @"UPDATE RolesSurveillance SET SessionId=@SessionId, TypeRole=@TypeRole,
-              SurveillantId=@SurveillantId, Local=@Local, DureeMinutes=@DureeMinutes
+            @"UPDATE RolesSurveillance SET SessionId=@SessionId, Date=@Date, TypeRole=@TypeRole,
+              SurveillantId=@SurveillantId, HeureDebut=@HeureDebut, HeureFin=@HeureFin, DureeMinutes=@DureeMinutes
               WHERE Id=@Id", r);
         return rows > 0;
     }

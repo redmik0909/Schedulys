@@ -23,6 +23,7 @@ public sealed partial class MainShellViewModel : ViewModelBase
     public PlanningViewModel      Planning      { get; }
     public SurveillanceViewModel  Surveillance  { get; }
     public ExportsViewModel       Exports       { get; }
+    public ParametresViewModel    Parametres    { get; }
 
     public IReadOnlyList<NavItem> NavItems { get; } = new NavItem[]
     {
@@ -32,11 +33,12 @@ public sealed partial class MainShellViewModel : ViewModelBase
         new("DONNÉES",         "",            PackIconKind.None,          IsHeader: true),
         new("Personnel",       "enseignants", PackIconKind.AccountTie),
         new("Groupes",         "groupes",     PackIconKind.AccountGroup),
-        new("Épreuves",        "epreuves",       PackIconKind.ClipboardText),
-        new("Surveillance",    "surveillance",   PackIconKind.ShieldAccount),
-        new("Locaux",          "locaux",         PackIconKind.DoorOpen),
+        new("Épreuves",        "epreuves",    PackIconKind.ClipboardText),
+        new("Surveillance",    "surveillance",PackIconKind.ShieldAccount),
+        new("Locaux",          "locaux",      PackIconKind.DoorOpen),
         new("GESTION",         "",            PackIconKind.None,          IsHeader: true),
         new("Exporter",        "exporter",    PackIconKind.Download),
+        new("Paramètres",      "parametres",  PackIconKind.Cog),
         new("Licence",         "licence",     PackIconKind.ShieldKey),
     };
 
@@ -78,6 +80,7 @@ public sealed partial class MainShellViewModel : ViewModelBase
         Planning     = new PlanningViewModel(db);
         Surveillance = new SurveillanceViewModel(db);
         Exports      = new ExportsViewModel(db);
+        Parametres   = new ParametresViewModel(db);
 
         _selectedNavItem = NavItems[0];
         _ = LoadDashboardAsync();
@@ -88,6 +91,8 @@ public sealed partial class MainShellViewModel : ViewModelBase
     {
         if (value?.Section is null or "dashboard")
             _ = LoadDashboardAsync();
+        else if (value.Section == "surveillance")
+            _ = Surveillance.RefreshAsync();
     }
 
     public string MachineId   => LicenseService.GetMachineId();

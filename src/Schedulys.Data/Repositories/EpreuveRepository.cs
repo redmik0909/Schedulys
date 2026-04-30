@@ -29,7 +29,7 @@ public sealed class EpreuveRepository : IEpreuveRepository
             "SELECT * FROM Epreuves WHERE Id=@id;", new { id });
     }
 
-    public async Task<IReadOnlyList<Epreuve>> ListAsync(int? classeId = null, string? search = null, string? annee = null)
+    public async Task<IReadOnlyList<Epreuve>> ListAsync(string? search = null, string? annee = null)
     {
         using var cn = _factory.Create();
         var sql = "SELECT * FROM Epreuves WHERE 1=1";
@@ -76,10 +76,10 @@ public sealed class EpreuveRepository : IEpreuveRepository
         using var tx = cn.BeginTransaction();
         await cn.ExecuteAsync("DELETE FROM EpreuveGroupes WHERE EpreuveId=@epreuveId",
             new { epreuveId }, tx);
-        foreach (var classeId in classeIds)
-            await cn.ExecuteAsync(
-                "INSERT INTO EpreuveGroupes(EpreuveId, ClasseId) VALUES (@epreuveId, @classeId)",
-                new { epreuveId, classeId }, tx);
+        var rows = classeIds.Select(id => new { epreuveId, classeId = id });
+        await cn.ExecuteAsync(
+            "INSERT INTO EpreuveGroupes(EpreuveId, ClasseId) VALUES (@epreuveId, @classeId)",
+            rows, tx);
         tx.Commit();
     }
 

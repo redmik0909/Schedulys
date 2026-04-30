@@ -194,6 +194,28 @@
                                   </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                               </ItemsControl>
+
+                              <!-- Rôles de surveillance -->
+                              <ItemsControl ItemsSource="{Binding Roles}" Margin="0,2,0,0">
+                                <ItemsControl.ItemTemplate>
+                                  <DataTemplate DataType="{x:Type vm:RoleSurveillanceDisplay}">
+                                    <Border Margin="0,1" Padding="0">
+                                      <TextBlock FontSize="9" TextTrimming="CharacterEllipsis">
+                                        <TextBlock.Style>
+                                          <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#7C6AF5"/>
+                                          </Style>
+                                        </TextBlock.Style>
+                                        <Run Text="▸"/>
+                                        <Run Text="{Binding Ligne1, Mode=OneWay}"/>
+                                        <Run Text=" · " Foreground="{StaticResource AppTextMuted}"/>
+                                        <Run Text="{Binding Surveillant, Mode=OneWay}"
+                                             Foreground="{StaticResource AppTextMuted}"/>
+                                      </TextBlock>
+                                    </Border>
+                                  </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                              </ItemsControl>
                             </StackPanel>
                           </DockPanel>
                         </Border>
@@ -228,8 +250,7 @@
 
         <!-- Onglet 0 : Nouvelle session -->
         <TabItem Header="Session">
-          <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="16,14,16,16">
+          <StackPanel Margin="16,14,16,16">
 
               <TextBlock Text="DATE" Style="{StaticResource FieldLabel}"/>
               <DatePicker Style="{StaticResource MaterialDesignDatePicker}"
@@ -267,14 +288,12 @@
                       Style="{StaticResource BtnPrimary}"
                       HorizontalAlignment="Stretch" Height="36"/>
 
-            </StackPanel>
-          </ScrollViewer>
+          </StackPanel>
         </TabItem>
 
         <!-- Onglet 1 : Ajouter un groupe -->
         <TabItem Header="Groupe">
-          <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="16,14,16,16">
+          <StackPanel Margin="16,14,16,16">
 
               <!-- Pas de session sélectionnée -->
               <Border Background="{StaticResource AppSurface}"
@@ -314,6 +333,23 @@
                           SelectedItem="{Binding EpreuveSelectionnee}"
                           DisplayMemberPath="Nom" Margin="0,0,0,10"
                           md:HintAssist.Hint="— sélectionner —"/>
+
+                <Grid Margin="0,0,0,10">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="*"/>
+                  </Grid.ColumnDefinitions>
+                  <CheckBox Grid.Column="0" Content="Tiers temps (+33 %)"
+                            IsChecked="{Binding TiersTemps}"
+                            VerticalAlignment="Center" FontSize="12"/>
+                  <StackPanel Grid.Column="2">
+                    <TextBlock Text="TYPE" Style="{StaticResource FieldLabel}"/>
+                    <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                              ItemsSource="{Binding TypesGroupe}"
+                              SelectedItem="{Binding TypeGroupe}"/>
+                  </StackPanel>
+                </Grid>
 
                 <Grid Margin="0,0,0,10">
                   <Grid.ColumnDefinitions>
@@ -369,7 +405,7 @@
                                      FontSize="10" TextWrapping="Wrap">
                             <TextBlock.Style>
                               <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Setter Property="Visibility" Value="Visible"/>
                                 <Style.Triggers>
                                   <DataTrigger Binding="{Binding AvertissementSalle}" Value="">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -412,8 +448,7 @@
                 </Border>
 
               </StackPanel>
-            </StackPanel>
-          </ScrollViewer>
+          </StackPanel>
         </TabItem>
 
       </TabControl>

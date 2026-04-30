@@ -58,53 +58,26 @@ public sealed class GroupeExamenRepository : IGroupeExamenRepository
     public async Task<int> GetMinutesAssigneesAsync(int profId, DateOnly? date = null, string? annee = null)
     {
         using var cn = _factory.Create();
-        await cn.OpenAsync();
-
         var d = date?.ToString("yyyy-MM-dd");
 
-        // Groupes d'examen (rôle de surveillant)
-        var sqlG = (d, annee) switch
-        {
-            (not null, not null) =>
-                @"SELECT COALESCE(SUM(g.DureeMinutes),0) FROM GroupesExamen g
-                  JOIN Sessions s ON s.Id=g.SessionId
-                  WHERE g.SurveillantId=@profId AND s.Date=@d AND s.AnneeScolaire=@annee",
-            (not null, null) =>
-                @"SELECT COALESCE(SUM(g.DureeMinutes),0) FROM GroupesExamen g
-                  JOIN Sessions s ON s.Id=g.SessionId
-                  WHERE g.SurveillantId=@profId AND s.Date=@d",
-            (null, not null) =>
-                @"SELECT COALESCE(SUM(g.DureeMinutes),0) FROM GroupesExamen g
-                  JOIN Sessions s ON s.Id=g.SessionId
-                  WHERE g.SurveillantId=@profId AND s.AnneeScolaire=@annee",
-            _ =>
-                @"SELECT COALESCE(SUM(g.DureeMinutes),0) FROM GroupesExamen g
-                  WHERE g.SurveillantId=@profId"
-        };
-        var fromGroupes = await cn.ExecuteScalarAsync<int>(sqlG, new { profId, d, annee });
+        var whereG = "g.SurveillantId=@profId"
+            + (d    != null ? " AND s.Date=@d"               : "")
+            + (annee != null ? " AND s.AnneeScolaire=@annee" : "");
+        var whereR = "r.SurveillantId=@profId"
+            + (d    != null ? " AND r.Date=@d"               : "");
 
-        // Rôles de surveillance
-        var sqlR = (d, annee) switch
-        {
-            (not null, not null) =>
-                @"SELECT COALESCE(SUM(r.DureeMinutes),0) FROM RolesSurveillance r
-                  JOIN Sessions s ON s.Id=r.SessionId
-                  WHERE r.SurveillantId=@profId AND s.Date=@d AND s.AnneeScolaire=@annee",
-            (not null, null) =>
-                @"SELECT COALESCE(SUM(r.DureeMinutes),0) FROM RolesSurveillance r
-                  JOIN Sessions s ON s.Id=r.SessionId
-                  WHERE r.SurveillantId=@profId AND s.Date=@d",
-            (null, not null) =>
-                @"SELECT COALESCE(SUM(r.DureeMinutes),0) FROM RolesSurveillance r
-                  JOIN Sessions s ON s.Id=r.SessionId
-                  WHERE r.SurveillantId=@profId AND s.AnneeScolaire=@annee",
-            _ =>
-                @"SELECT COALESCE(SUM(r.DureeMinutes),0) FROM RolesSurveillance r
-                  WHERE r.SurveillantId=@profId"
-        };
-        var fromRoles = await cn.ExecuteScalarAsync<int>(sqlR, new { profId, d, annee });
+        var sql = $@"
+            SELECT COALESCE(SUM(Minutes), 0) FROM (
+                SELECT g.DureeMinutes AS Minutes
+                FROM GroupesExamen g JOIN Sessions s ON s.Id=g.SessionId
+                WHERE {whereG}
+                UNION ALL
+                SELECT r.DureeMinutes AS Minutes
+                FROM RolesSurveillance r
+                WHERE {whereR}
+            )";
 
-        return fromGroupes + fromRoles;
+        return await cn.ExecuteScalarAsync<int>(sql, new { profId, d, annee });
     }
 
     // Batch : minutes assignées pour TOUS les profs à une date donnée (1 seule requête).
@@ -124,8 +97,7 @@ public sealed class GroupeExamenRepository : IGroupeExamenRepository
                 UNION ALL
                 SELECT r.SurveillantId AS ProfId, r.DureeMinutes AS Minutes
                 FROM RolesSurveillance r
-                JOIN Sessions s ON s.Id = r.SessionId
-                WHERE s.Date = @d
+                WHERE r.SurveillantId IS NOT NULL AND r.Date = @d
             )
             GROUP BY ProfId", new { d });
 

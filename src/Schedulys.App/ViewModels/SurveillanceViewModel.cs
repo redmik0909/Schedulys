@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
@@ -11,26 +10,6 @@ using Schedulys.Data;
 
 namespace Schedulys.App.ViewModels;
 
-public sealed class SessionSurveillanceItem
-{
-    public Session Session { get; }
-    public string  Label
-    {
-        get
-        {
-            if (!DateOnly.TryParse(Session.Date, out var d)) return Session.Date;
-            var raw     = d.ToString("ddd d MMM yyyy", new CultureInfo("fr-CA"));
-            var dateStr = char.ToUpper(raw[0]) + raw[1..];
-            var periode = Session.Periode == "AM" ? "Matin" : "Après-midi";
-            return Session.JourCycle > 0
-                ? $"{dateStr}  —  {periode}  ({Session.HeureDebut})  —  Jour {Session.JourCycle}"
-                : $"{dateStr}  —  {periode}  ({Session.HeureDebut})";
-        }
-    }
-
-    public SessionSurveillanceItem(Session s) => Session = s;
-}
-
 public sealed class RoleSurveillanceRow
 {
     public RoleSurveillance Role        { get; }
@@ -40,10 +19,10 @@ public sealed class RoleSurveillanceRow
     {
         get
         {
-            var parts = new List<string>();
-            if (!string.IsNullOrWhiteSpace(Role.Local)) parts.Add($"Local {Role.Local}");
-            parts.Add($"{Role.DureeMinutes} min");
-            return $"{Surveillant}  ·  {string.Join("  ·  ", parts)}";
+            var plage = (!string.IsNullOrWhiteSpace(Role.HeureDebut) && !string.IsNullOrWhiteSpace(Role.HeureFin))
+                ? $"{Role.HeureDebut}–{Role.HeureFin}  ({Role.DureeMinutes} min)"
+                : $"{Role.DureeMinutes} min";
+            return $"{Surveillant}  ·  {plage}";
         }
     }
 
@@ -54,24 +33,22 @@ public sealed class RoleSurveillanceRow
     }
 }
 
-public sealed class SessionSurveillanceGroup
+public sealed class JourSurveillanceGroup
 {
     public string                                    EnTete { get; }
     public ObservableCollection<RoleSurveillanceRow> Roles  { get; } = new();
 
-    public SessionSurveillanceGroup(Session session)
+    public JourSurveillanceGroup(string date)
     {
-        if (!DateOnly.TryParse(session.Date, out var d))
+        if (DateOnly.TryParse(date, out var d))
         {
-            EnTete = session.Date;
-            return;
+            var raw = d.ToString("dddd d MMMM yyyy", new CultureInfo("fr-CA"));
+            EnTete = char.ToUpper(raw[0]) + raw[1..];
         }
-        var raw     = d.ToString("dddd d MMMM yyyy", new CultureInfo("fr-CA"));
-        var dateStr = char.ToUpper(raw[0]) + raw[1..];
-        var periode = session.Periode == "AM" ? "Matin" : "Après-midi";
-        EnTete = session.JourCycle > 0
-            ? $"{dateStr}  —  {periode}  ({session.HeureDebut})  —  Jour {session.JourCycle}"
-            : $"{dateStr}  —  {periode}  ({session.HeureDebut})";
+        else
+        {
+            EnTete = string.IsNullOrWhiteSpace(date) ? "Date inconnue" : date;
+        }
     }
 }
 
@@ -79,27 +56,34 @@ public sealed partial class SurveillanceViewModel : ViewModelBase
 {
     private readonly DataContext _db;
 
-    // Listes formulaire
-    public ObservableCollection<SessionSurveillanceItem> SessionsDisponibles { get; } = new();
-    public ObservableCollection<Prof>                    ProfsDisponibles    { get; } = new();
+    public ObservableCollection<Prof>   ProfsDisponibles { get; } = new();
+    public ObservableCollection<string> ZonesDisponibles { get; } = new();
 
-    public static IReadOnlyList<string> TypesRole { get; } = new[]
+    [ObservableProperty] private DateTime _dateRole = DateTime.Today;
+    [ObservableProperty] private string   _typeRoleInput          = "";
+    [ObservableProperty] private Prof?    _surveillantSelectionne;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PlageCalculee))]
+    private string _heureDebutInput = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PlageCalculee))]
+    private string _heureFinInput = "";
+
+    public string PlageCalculee
     {
-        "Surveillance 1er étage",
-        "Surveillance 3e étage",
-        "Surveillance bibliothèque SAI",
-        "Disponibilités et pauses"
-    };
+        get
+        {
+            if (!TimeSpan.TryParse(HeureDebutInput, out var debut) ||
+                !TimeSpan.TryParse(HeureFinInput,   out var fin)   || fin <= debut)
+                return "";
+            var duree = (int)(fin - debut).TotalMinutes;
+            return $"{duree} min";
+        }
+    }
 
-    // Champs formulaire
-    [ObservableProperty] private SessionSurveillanceItem? _sessionSelectionnee;
-    [ObservableProperty] private string  _typeRoleInput         = "Surveillance 1er étage";
-    [ObservableProperty] private Prof?   _surveillantSelectionne;
-    [ObservableProperty] private string  _localInput            = "";
-    [ObservableProperty] private string  _dureeInput            = "90";
-
-    // Liste affichage
-    public ObservableCollection<SessionSurveillanceGroup> GroupesParSession { get; } = new();
+    public ObservableCollection<JourSurveillanceGroup> GroupesParJour { get; } = new();
 
     [ObservableProperty] private string _erreur  = "";
     [ObservableProperty] private string _message = "";
@@ -115,38 +99,31 @@ public sealed partial class SurveillanceViewModel : ViewModelBase
 
     private async Task LoadAsync()
     {
-        var sessions = await _db.Sessions.ListAsync();
-        var roles    = await _db.RolesSurveillance.ListAllAsync();
-        var profs    = await _db.Profs.ListAsync();
+        var roles = await _db.RolesSurveillance.ListAllAsync();
+        var profs = await _db.Profs.ListAsync();
+        var zones = await _db.Zones.ListAsync();
 
-        var profsMap = profs.ToDictionary(p => p.Id);
-
-        // Formulaire
-        var savedSession = SessionSelectionnee?.Session.Id;
-        SessionsDisponibles.Clear();
-        foreach (var s in sessions.OrderBy(s => s.Date).ThenBy(s => s.Periode))
-            SessionsDisponibles.Add(new SessionSurveillanceItem(s));
-        if (savedSession.HasValue)
-            SessionSelectionnee = SessionsDisponibles.FirstOrDefault(i => i.Session.Id == savedSession);
+        ZonesDisponibles.Clear();
+        foreach (var z in zones) ZonesDisponibles.Add(z.Nom);
+        if (string.IsNullOrEmpty(TypeRoleInput) && ZonesDisponibles.Count > 0)
+            TypeRoleInput = ZonesDisponibles[0];
 
         ProfsDisponibles.Clear();
         foreach (var p in profs.Where(p => p.Role == "Surveillant").OrderBy(p => p.Nom))
             ProfsDisponibles.Add(p);
 
-        // Liste groupée
-        GroupesParSession.Clear();
-        foreach (var session in sessions.OrderBy(s => s.Date).ThenBy(s => s.HeureDebut))
-        {
-            var sessionRoles = roles.Where(r => r.SessionId == session.Id).ToList();
-            if (sessionRoles.Count == 0) continue;
+        var profsMap = profs.ToDictionary(p => p.Id);
 
-            var group = new SessionSurveillanceGroup(session);
-            foreach (var r in sessionRoles)
+        GroupesParJour.Clear();
+        foreach (var grp in roles.GroupBy(r => r.Date).OrderBy(g => g.Key))
+        {
+            var group = new JourSurveillanceGroup(grp.Key);
+            foreach (var r in grp.OrderBy(r => r.HeureDebut))
             {
                 var nomSurv = profsMap.TryGetValue(r.SurveillantId, out var p) ? p.Nom : "—";
                 group.Roles.Add(new RoleSurveillanceRow(r, nomSurv));
             }
-            GroupesParSession.Add(group);
+            GroupesParJour.Add(group);
         }
     }
 
@@ -156,38 +133,38 @@ public sealed partial class SurveillanceViewModel : ViewModelBase
         Erreur  = "";
         Message = "";
 
-        if (SessionSelectionnee is null)     { Erreur = "Sélectionnez une session.";    return; }
-        if (SurveillantSelectionne is null)  { Erreur = "Sélectionnez un surveillant."; return; }
-        if (!int.TryParse(DureeInput, out var duree) || duree <= 0)
-                                              { Erreur = "Durée invalide (minutes).";    return; }
+        if (SurveillantSelectionne is null) { Erreur = "Sélectionnez un surveillant.";           return; }
+        if (!TimeSpan.TryParse(HeureDebutInput, out var tsDebut))
+                                            { Erreur = "Heure de début invalide (HH:mm).";       return; }
+        if (!TimeSpan.TryParse(HeureFinInput, out var tsFin) || tsFin <= tsDebut)
+                                            { Erreur = "Heure de fin invalide ou antérieure au début."; return; }
 
-        // Vérifier qu'il n'est pas déjà assigné dans cette session
-        var groupesExistants = await _db.GroupesExamen.ListBySessionAsync(SessionSelectionnee.Session.Id);
-        var rolesExistants   = await _db.RolesSurveillance.ListBySessionAsync(SessionSelectionnee.Session.Id);
+        var duree   = (int)(tsFin - tsDebut).TotalMinutes;
+        var dateStr = DateOnly.FromDateTime(DateRole).ToString("yyyy-MM-dd");
 
-        if (groupesExistants.Any(g => g.SurveillantId == SurveillantSelectionne.Id))
+        // Vérifier qu'il n'est pas déjà assigné à ce jour
+        var tousLesRoles = await _db.RolesSurveillance.ListAllAsync();
+        if (tousLesRoles.Any(r => r.Date == dateStr && r.SurveillantId == SurveillantSelectionne.Id))
         {
-            Erreur = $"{SurveillantSelectionne.Nom} surveille déjà un groupe dans cette session.";
-            return;
-        }
-        if (rolesExistants.Any(r => r.SurveillantId == SurveillantSelectionne.Id))
-        {
-            Erreur = $"{SurveillantSelectionne.Nom} a déjà un rôle dans cette session.";
+            Erreur = $"{SurveillantSelectionne.Nom} a déjà un rôle de surveillance ce jour.";
             return;
         }
 
         await _db.RolesSurveillance.CreateAsync(new RoleSurveillance
         {
-            SessionId     = SessionSelectionnee.Session.Id,
+            SessionId     = 0,
+            Date          = dateStr,
             TypeRole      = TypeRoleInput,
             SurveillantId = SurveillantSelectionne.Id,
-            Local         = string.IsNullOrWhiteSpace(LocalInput) ? null : LocalInput.Trim(),
+            HeureDebut    = HeureDebutInput.Trim(),
+            HeureFin      = HeureFinInput.Trim(),
             DureeMinutes  = duree
         });
 
         Message                = "✓ Rôle ajouté.";
         SurveillantSelectionne = null;
-        LocalInput             = "";
+        HeureDebutInput        = "";
+        HeureFinInput          = "";
         await LoadAsync();
     }
 

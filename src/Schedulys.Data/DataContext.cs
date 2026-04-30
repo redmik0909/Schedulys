@@ -23,6 +23,7 @@ public sealed class DataContext
         GroupesExamen      = new GroupeExamenRepository(_factory);
         RolesSurveillance  = new RoleSurveillanceRepository(_factory);
         Quotas             = new QuotaMinutesRepository(_factory);
+        Zones              = new ZoneSurveillanceRepository(_factory);
     }
 
     public IProfRepository              Profs             { get; }
@@ -35,4 +36,5 @@ public sealed class DataContext
     public IGroupeExamenRepository      GroupesExamen     { get; }
     public IRoleSurveillanceRepository  RolesSurveillance { get; }
     public IQuotaMinutesRepository      Quotas            { get; }
+    public IZoneSurveillanceRepository  Zones             { get; }
 }
